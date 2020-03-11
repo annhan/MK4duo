@@ -765,7 +765,12 @@
 #define BABYSTEPPING
 #define BABYSTEP_XY
 #define BABYSTEP_INVERT_Z false
-#define BABYSTEP_MULTIPLICATOR 10
+
+// Babysteps are very small. Increase for faster motion.
+#define BABYSTEP_MULTIPLICATOR_Z  1
+#define BABYSTEP_MULTIPLICATOR_XY 1
+// Display total babysteps since last G28
+
 //#define BABYSTEP_DISPLAY_TOTAL
 //#define BABYSTEP_ZPROBE_OFFSET
 //#define DOUBLECLICK_FOR_Z_BABYSTEPPING

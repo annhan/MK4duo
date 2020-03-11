@@ -1398,7 +1398,6 @@ void LcdUI::set_alert_status_P(PGM_P const message) {
 
 void LcdUI::set_status(const char* const message, const bool) {
   if (alert_level || !nexlcd.NextionON) return;
-  //host_action.action_notify(message); // Disabled for now
   strncpy(status_message, message, NEXTION_MAX_MESSAGE_LENGTH);
   nexlcd.setText(LcdStatus, status_message);
 }
@@ -1407,8 +1406,6 @@ void LcdUI::set_status_P(PGM_P const message, int8_t level/*=0*/) {
   if (level < 0) level = alert_level = 0;
   if (level < alert_level || !nexlcd.NextionON) return;
   alert_level = level;
-
-  //host_action.action_notify_P(message); // Disabled for now
 
   // Get a pointer to the null terminator
   PGM_P pend = message + strlen_P(message);
@@ -1435,7 +1432,6 @@ void LcdUI::status_printf_P(const uint8_t level, PGM_P const message, ...) {
   vsnprintf(status_message, NEXTION_MAX_MESSAGE_LENGTH, message, args);
   va_end(args);
   nexlcd.setText(LcdStatus, status_message);
-  //host_action.action_notify(status_message); // Disabled for now
 }
 
 PGM_P print_paused = GET_TEXT(MSG_PRINT_PAUSED);
@@ -1496,10 +1492,6 @@ void LcdUI::pause_print() {
 
   #if HAS_LCD_MENU
     synchronize(GET_TEXT(MSG_PAUSE_PRINT));
-  #endif
-
-  #if HAS_SD_RESTART
-    if (restart.enabled && IS_SD_PRINTING()) restart.save_job(true, false);
   #endif
 
   host_action.prompt_open(PROMPT_PAUSE_RESUME, PSTR("LCD Pause"), PSTR("Resume"));
