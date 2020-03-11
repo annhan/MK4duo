@@ -558,6 +558,8 @@ typedef struct MinMaxVal<uint8_t>   limit_uchar_t;
 typedef struct MinMaxVal<int16_t>     limit_int_t;
 typedef struct MinMaxVal<float>     limit_float_t;
 
+
+
 /**
  * XYY Limit
  */

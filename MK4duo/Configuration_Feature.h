@@ -163,9 +163,9 @@
  * See Configuration_Motor_Driver.h for configuration Motor Driver          *
  *                                                                          *
  ****************************************************************************/
-#define  X_DRIVER_TYPE  A4988
-#define  Y_DRIVER_TYPE  A4988
-#define  Z_DRIVER_TYPE  A4988
+#define  X_DRIVER_TYPE  TB6600
+#define  Y_DRIVER_TYPE  TB6600
+#define  Z_DRIVER_TYPE  TB6600
 #define X2_DRIVER_TYPE  A4988
 #define Y2_DRIVER_TYPE  A4988
 #define Z2_DRIVER_TYPE  A4988
@@ -338,7 +338,7 @@
  * has a solenoid.                                                     *
  *                                                                     *
  ***********************************************************************/
-//#define EXT_SOLENOID
+#define EXT_SOLENOID
 /***********************************************************************/
 
 
@@ -610,9 +610,9 @@
  *************************** Software endstops ****************************
  **************************************************************************/
 // If enabled, axis won't move to coordinates less than MIN POS.
-#define MIN_SOFTWARE_ENDSTOPS
+//#define MIN_SOFTWARE_ENDSTOPS
 // If enabled, axis won't move to coordinates greater than MAX POS.
-#define MAX_SOFTWARE_ENDSTOPS
+//#define MAX_SOFTWARE_ENDSTOPS
 /**************************************************************************/
 
 
@@ -626,7 +626,7 @@
  *                                                                        *
  **************************************************************************/
 #define ENDSTOPS_ONLY_FOR_HOMING
-//#define ENABLED_ALL_SIX_ENDSTOP
+#define ENABLED_ALL_SIX_ENDSTOP
 /**************************************************************************/
 
 
@@ -762,28 +762,15 @@
  * Warning: Does not respect endstops!                                    *
  *                                                                        *
  **************************************************************************/
-//#define BABYSTEPPING
-
-// Also enable X/Y Babystepping. Not supported on DELTA!
-//#define BABYSTEP_XY
-
-// Change if Z babysteps should go the other way
+#define BABYSTEPPING
+#define BABYSTEP_XY
 #define BABYSTEP_INVERT_Z false
-// Babysteps are very small. Increase for faster motion.
-#define BABYSTEP_MULTIPLICATOR 1
-// Display total babysteps since last G28
+#define BABYSTEP_MULTIPLICATOR 10
 //#define BABYSTEP_DISPLAY_TOTAL
-// Enable to combine M851 and Babystepping
 //#define BABYSTEP_ZPROBE_OFFSET
-// Double-click on the Status Screen for Z Babystepping.
 //#define DOUBLECLICK_FOR_Z_BABYSTEPPING
-// Maximum interval between clicks, in milliseconds.
-// Note: Extra time may be added to mitigate controller latency.
 #define DOUBLECLICK_MAX_INTERVAL 1250U
-
-// Enable graphical overlay on Z-offset editor
 //#define BABYSTEP_ZPROBE_GFX_OVERLAY
-// Reverses the direction of the CW/CCW indicators
 //#define BABYSTEP_ZPROBE_GFX_REVERSE
 /**************************************************************************/
 
@@ -1324,10 +1311,10 @@
  * Uncomment EEPROM FLASH for use writing EEPROM on Flash Memory (Only for DUE)                                         *
  *                                                                                                                      *
  ************************************************************************************************************************/
-//#define EEPROM_SETTINGS
+#define EEPROM_SETTINGS
 
 // Uncomment this to enable EEPROM Serial responses.
-//#define EEPROM_CHITCHAT
+#define EEPROM_CHITCHAT
 
 // Disabled M503 report
 //#define DISABLE_M503
@@ -1341,7 +1328,7 @@
 //#define EEPROM_I2C
 //#define EEPROM_SPI
 //#define EEPROM_SD
-//#define EEPROM_FLASH
+#define EEPROM_FLASH
 /************************************************************************************************************************/
 
 
@@ -1629,7 +1616,7 @@
  * Check also Configuration_CNCRouter.h                                   *
  *                                                                        *
  **************************************************************************/
-//#define CNCROUTER
+#define CNCROUTER
 /**************************************************************************/
 
 
@@ -1721,7 +1708,7 @@
  * 30 : Minimum for TB6560 stepper drivers                                             *
  *                                                                                     *
  ***************************************************************************************/
-#define MINIMUM_STEPPER_PULSE 0UL
+#define MINIMUM_STEPPER_PULSE 5UL
 /***************************************************************************************/
 
 
@@ -1774,7 +1761,7 @@
  * at the lowest stepping frequencies.                                 *
  *                                                                     *
  ***********************************************************************/
-//#define ADAPTIVE_STEP_SMOOTHING
+#define ADAPTIVE_STEP_SMOOTHING
 /***********************************************************************/
 
 
@@ -1790,9 +1777,9 @@
  * Alligator Board support 16 or 32 only value                         *
  *                                                                     *
  ***********************************************************************/
-#define X_MICROSTEPS  16
-#define Y_MICROSTEPS  16
-#define Z_MICROSTEPS  16
+#define X_MICROSTEPS  32
+#define Y_MICROSTEPS  32
+#define Z_MICROSTEPS  32
 #define E0_MICROSTEPS 16
 #define E1_MICROSTEPS 16
 #define E2_MICROSTEPS 16
@@ -1810,9 +1797,9 @@
  * Values 100 - 3000 in mA                                             *
  *                                                                     *
  ***********************************************************************/
-#define X_CURRENT   800
-#define Y_CURRENT   800
-#define Z_CURRENT   800
+#define X_CURRENT   2100
+#define Y_CURRENT   2100
+#define Z_CURRENT   2100
 #define E0_CURRENT  800
 #define E1_CURRENT  800
 #define E2_CURRENT  800
@@ -2127,7 +2114,7 @@
  * NOTE: Requires a lot of PROGMEM!                                                      *
  *                                                                                       *
  *****************************************************************************************/
-//#define DEBUG_FEATURE
+#define DEBUG_FEATURE
 /*****************************************************************************************/
 
 

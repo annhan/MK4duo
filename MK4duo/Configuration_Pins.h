@@ -242,7 +242,7 @@
 #endif
 
 #if ENABLED(CNCROUTER)
-  #define CNCROUTER_PIN       NoPin
+  #define CNCROUTER_PIN       ORIG_CNCROUTER_PIN
 #endif
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)

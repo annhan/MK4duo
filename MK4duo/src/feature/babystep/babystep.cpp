@@ -53,13 +53,16 @@ void Babystep::spin() {
 }
 
 void Babystep::add_mm(const AxisEnum axis, const float &mm) {
+	
   add_steps(axis, mm * mechanics.data.axis_steps_per_mm[axis]);
 }
 
 void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
 
-  if (!mechanics.isAxisHomed(axis)) return;
-
+  /*if (!mechanics.isAxisHomed(axis)) {
+	  SERIAL_EM("fAIL aDD");
+	  return;
+  }*/
   #if HAS_LCD_MENU
     accum += distance; // Count up babysteps for the LCDUI
     #if ENABLED(BABYSTEP_DISPLAY_TOTAL)
@@ -91,6 +94,7 @@ void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
       steps[Z_AXIS] += distance;
     #endif
   #else
+	  
     steps[BS_TODO_AXIS(axis)] += distance;
   #endif
 
@@ -98,6 +102,7 @@ void Babystep::add_steps(const AxisEnum axis, const int16_t distance) {
 
 /** Private Function */
 void Babystep::step_axis(const AxisEnum axis) {
+//	SERIAL_EM("Chay Babystep aDD");
   const int16_t curTodo = steps[BS_TODO_AXIS(axis)]; // get rid of volatile for performance
   if (curTodo) {
     stepper.babystep((AxisEnum)axis, curTodo > 0);

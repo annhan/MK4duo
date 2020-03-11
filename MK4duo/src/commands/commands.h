@@ -192,6 +192,7 @@ class Commands {
     static void process_next();
 
     static void unknown_error();
+	static void reportDevice();
 
     static void gcode_line_error(PGM_P const err, const int8_t tmp_port);
 

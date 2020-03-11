@@ -78,12 +78,12 @@
  * Put true for enable or put false for disable the endstop pullup resistors             *
  *                                                                                       *
  *****************************************************************************************/
-#define ENDSTOPPULLUP_XMIN    false
-#define ENDSTOPPULLUP_YMIN    false
-#define ENDSTOPPULLUP_ZMIN    false
-#define ENDSTOPPULLUP_XMAX    false
-#define ENDSTOPPULLUP_YMAX    false
-#define ENDSTOPPULLUP_ZMAX    false
+#define ENDSTOPPULLUP_XMIN    true
+#define ENDSTOPPULLUP_YMIN    true
+#define ENDSTOPPULLUP_ZMIN    true
+#define ENDSTOPPULLUP_XMAX    true
+#define ENDSTOPPULLUP_YMAX    true
+#define ENDSTOPPULLUP_ZMAX    true
 #define ENDSTOPPULLUP_X2MIN   false
 #define ENDSTOPPULLUP_Y2MIN   false
 #define ENDSTOPPULLUP_Z2MIN   false
@@ -104,12 +104,12 @@
  * uses "false" here (most common setup).                                                *
  *                                                                                       *
  *****************************************************************************************/
-#define X_MIN_ENDSTOP_LOGIC   false   // set to true to invert the logic of the endstop.
-#define Y_MIN_ENDSTOP_LOGIC   false   // set to true to invert the logic of the endstop.
-#define Z_MIN_ENDSTOP_LOGIC   false   // set to true to invert the logic of the endstop.
-#define X_MAX_ENDSTOP_LOGIC   false   // set to true to invert the logic of the endstop.
-#define Y_MAX_ENDSTOP_LOGIC   false   // set to true to invert the logic of the endstop.
-#define Z_MAX_ENDSTOP_LOGIC   false   // set to true to invert the logic of the endstop.
+#define X_MIN_ENDSTOP_LOGIC   true   // set to true to invert the logic of the endstop.
+#define Y_MIN_ENDSTOP_LOGIC   true   // set to true to invert the logic of the endstop.
+#define Z_MIN_ENDSTOP_LOGIC   true   // set to true to invert the logic of the endstop.
+#define X_MAX_ENDSTOP_LOGIC   true   // set to true to invert the logic of the endstop.
+#define Y_MAX_ENDSTOP_LOGIC   true   // set to true to invert the logic of the endstop.
+#define Z_MAX_ENDSTOP_LOGIC   true   // set to true to invert the logic of the endstop.
 #define X2_MIN_ENDSTOP_LOGIC  false   // set to true to invert the logic of the endstop.
 #define Y2_MIN_ENDSTOP_LOGIC  false   // set to true to invert the logic of the endstop.
 #define Z2_MIN_ENDSTOP_LOGIC  false   // set to true to invert the logic of the endstop.
@@ -130,7 +130,7 @@
  * This will remove the need to poll the interrupt pins, saving many CPU cycles.         *
  *                                                                                       *
  *****************************************************************************************/
-//#define ENDSTOP_INTERRUPTS_FEATURE
+#define ENDSTOP_INTERRUPTS_FEATURE
 /*****************************************************************************************/
 
 
@@ -290,10 +290,10 @@
  * Non Inverting (Active High) use 1                                                     *
  *                                                                                       *
  *****************************************************************************************/
-#define X_ENABLE_ON 0
-#define Y_ENABLE_ON 0
-#define Z_ENABLE_ON 0
-#define E_ENABLE_ON 0
+#define X_ENABLE_ON 1
+#define Y_ENABLE_ON 1
+#define Z_ENABLE_ON 1
+#define E_ENABLE_ON 1
 /*****************************************************************************************/
 
 
@@ -355,11 +355,11 @@
  * Travel limits after homing (units are in mm)                                          *
  *                                                                                       *
  *****************************************************************************************/
-#define X_MAX_POS 200
+#define X_MAX_POS 20000
 #define X_MIN_POS 0
-#define Y_MAX_POS 200
+#define Y_MAX_POS 20000
 #define Y_MIN_POS 0
-#define Z_MAX_POS 200
+#define Z_MAX_POS 20000
 #define Z_MIN_POS 0
 #define E_MIN_POS 0
 /*****************************************************************************************/
@@ -532,7 +532,10 @@
  *                                                                                       *
  *****************************************************************************************/
 // Default steps per unit               X,  Y,  Z
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {80, 80, 3200}
+//#define STEPS_PER_DEGREE (1.0 * 200 * AB_MICROSTEPPING * AB_HDRIVE_RATIO / 360.0)
+#define STEPS_PER_DEGREE (1.0 * 200 * 64 * 10 / 360.0)
+#define Z_STEPS_PER_MM   (1.0 * 200 * 64 *10 / 15) //15 LÀ (1/3)/5
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {STEPS_PER_DEGREE, STEPS_PER_DEGREE, Z_STEPS_PER_MM}
 // Default steps per unit               E0, ...(per extruder)
 #define DEFAULT_AXIS_STEPS_PER_UNIT_E {625, 625, 625, 625}
 /*****************************************************************************************/
@@ -542,11 +545,11 @@
  ********************************** Axis feedrate ****************************************
  *****************************************************************************************/
 //                                       X,   Y, Z (mm/sec)
-#define DEFAULT_MAX_FEEDRATE          {300, 300, 2}
+#define DEFAULT_MAX_FEEDRATE          {10000, 10000, 10000}
 //                                      E0, ...(per extruder). (mm/sec)
 #define DEFAULT_MAX_FEEDRATE_E        {100, 100, 100, 100}
 // Feedrates for manual moves along     X,  Y, Z,  E from panel (mm/sec)
-#define MANUAL_FEEDRATE               {50, 50, 4, 10}
+#define MANUAL_FEEDRATE               {500, 500, 500, 10}
 // (mm) Smallest manual Z move (< 0.1mm)
 #define SHORT_MANUAL_Z_MOVE           0.025
 // Minimum feedrate
@@ -563,15 +566,15 @@
  ******************************** Axis acceleration **************************************
  *****************************************************************************************/
 //  Maximum start speed for accelerated moves.    X,    Y,  Z
-#define DEFAULT_MAX_ACCELERATION              {3000, 3000, 50}
+#define DEFAULT_MAX_ACCELERATION              {1000, 1000, 200}
 //  Maximum start speed for accelerated moves.   E0, ...(per extruder)
 #define DEFAULT_MAX_ACCELERATION_E            {1000, 1000, 1000, 1000}
 //  Maximum acceleration in mm/s^2 for retracts   E0... (per extruder)
 #define DEFAULT_RETRACT_ACCELERATION          {10000, 10000, 10000, 10000}
 //  X, Y, Z and E* maximum acceleration in mm/s^2 for printing moves
-#define DEFAULT_ACCELERATION          3000
+#define DEFAULT_ACCELERATION          350
 //  X, Y, Z acceleration in mm/s^2 for travel (non printing) moves
-#define DEFAULT_TRAVEL_ACCELERATION   3000
+#define DEFAULT_TRAVEL_ACCELERATION   200
 /*****************************************************************************************/
 
 
@@ -589,7 +592,7 @@
  *****************************************************************************************/
 #define DEFAULT_XJERK 10.0
 #define DEFAULT_YJERK 10.0
-#define DEFAULT_ZJERK  0.4
+#define DEFAULT_ZJERK 10.0
 // E0... (mm/sec) per extruder
 #define DEFAULT_EJERK {5.0, 5.0, 5.0, 5.0}
 /*****************************************************************************************/
@@ -601,7 +604,7 @@
 // Homing speeds (mm/m)
 #define HOMING_FEEDRATE_X (50*60)
 #define HOMING_FEEDRATE_Y (50*60)
-#define HOMING_FEEDRATE_Z (2*60)
+#define HOMING_FEEDRATE_Z (500*60)
 
 // Slow Homing feature reduce Acceleration and Jerk only for homing
 //#define SLOW_HOMING
@@ -609,10 +612,10 @@
 // Homing hits each endstop, retracts by these distances, then does a slower bump.
 #define X_HOME_BUMP_MM 5
 #define Y_HOME_BUMP_MM 5
-#define Z_HOME_BUMP_MM 2
+#define Z_HOME_BUMP_MM 5
 
 // Re-Bump Speed Divisor (Divides the Homing Feedrate)
-#define HOMING_BUMP_DIVISOR {5, 5, 2}
+#define HOMING_BUMP_DIVISOR {5, 5, 5}
 /*****************************************************************************************/
 
 

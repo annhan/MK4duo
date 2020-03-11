@@ -308,8 +308,10 @@ void Commands::get_serial() {
   #if NO_TIMEOUTS > 0
     static long_timer_t last_command_timer;
     if (buffer_ring.isEmpty() && !Com::serialDataAvailable() && last_command_timer.expired(NO_TIMEOUTS)) {
-      SERIAL_STR(WT);
-      SERIAL_EOL();
+      SERIAL_STR("w ");
+	  stepper.report_positions();
+	  //mechanics.report_position();
+     // SERIAL_EOL();
     }
   #endif
 
@@ -565,11 +567,22 @@ void Commands::unknown_error() {
     gcode_t tmp = buffer_ring.peek();
     SERIAL_PORT(tmp.s_port);
   #endif
-  SERIAL_SMV(ECHO, MSG_HOST_UNKNOWN_COMMAND, parser.command_ptr);
+SERIAL_SMV(ECHO, MSG_HOST_UNKNOWN_COMMAND, parser.command_ptr);
   SERIAL_CHR('"');
   SERIAL_EOL();
   SERIAL_PORT(-1);
 }
+void Commands::reportDevice() {
+  #if NUM_SERIAL > 1
+    gcode_t tmp = buffer_ring.peek();
+    SERIAL_PORT(tmp.s_port);
+  #endif
+  SERIAL_SMV("OK", " ", " ");
+  SERIAL_CHR(' ');
+  SERIAL_EOL();
+  SERIAL_PORT(-1);
+}
+
 
 void Commands::gcode_line_error(PGM_P const err, const int8_t port) {
   SERIAL_PORT(port);
@@ -662,6 +675,7 @@ void Commands::process_parsed(const bool say_ok/*=true*/) {
 
         if (code_num <= 1) { // Execute directly the most common Gcodes
           EXECUTE_G0_G1(code_num);
+		  ok_to_send();
         }
         else if (WITHIN(code_num, GCode_Table[start].code, GCode_Table[end].code)) {
           while (start <= end) {
@@ -706,7 +720,7 @@ void Commands::process_parsed(const bool say_ok/*=true*/) {
       break;
 
       case 'T': gcode_T(parser.codenum); break;
-
+	  case '$': gcode_M114(); break;
       default: unknown_error();
     }
 
@@ -4031,12 +4045,12 @@ void Commands::process_parsed(const bool say_ok/*=true*/) {
       break;
 
       case 'T': gcode_T(parser.codenum); break;
-
+		case '$': gcode_M114(); break;
       default: unknown_error();
     }
 
   #endif
 
-  if (say_ok) ok_to_send();
+ // if (say_ok) ok_to_send();
 
 }

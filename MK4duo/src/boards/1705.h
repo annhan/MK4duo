@@ -42,7 +42,7 @@
 #define ORIG_E0_DIR_PIN            46
 #define ORIG_E0_ENABLE_PIN         48
 #define ORIG_E0_CS_PIN             NoPin
-#define ORIG_SOL0_PIN              NoPin
+#define ORIG_SOL0_PIN              7
 
 //###EXTRUDER_1
 #define ORIG_E1_STEP_PIN           44
@@ -115,9 +115,9 @@
 
 //###HEATER
 #define ORIG_HEATER_HE0_PIN         3
-#define ORIG_HEATER_HE1_PIN         8
-#define ORIG_HEATER_HE2_PIN         7
-#define ORIG_HEATER_HE3_PIN         9
+#define ORIG_HEATER_HE1_PIN        NoPin
+#define ORIG_HEATER_HE2_PIN        NoPin
+#define ORIG_HEATER_HE3_PIN        NoPin
 #define ORIG_HEATER_HE4_PIN        NoPin
 #define ORIG_HEATER_HE5_PIN        NoPin
 #define ORIG_HEATER_BED0_PIN        2
@@ -166,7 +166,8 @@
 
 //###MAX6675
 #define MAX6675_SS_PIN             65
-
+//###CNCROUTER
+#define ORIG_CNCROUTER_PIN         9
 //###MAX31855
 #define MAX31855_SS0_PIN           65
 #define MAX31855_SS1_PIN           52
@@ -174,7 +175,7 @@
 #define MAX31855_SS3_PIN           50
 
 //###LASER
-#define ORIG_LASER_PWR_PIN         NoPin
+#define ORIG_LASER_PWR_PIN         8
 #define ORIG_LASER_PWM_PIN         NoPin
 
 //###MISC

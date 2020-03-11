@@ -531,7 +531,7 @@ void Stepper::report_positions() {
   #elif MECH(DELTA)
     SERIAL_MSG(MSG_HOST_COUNT_ALPHA);
   #else
-    SERIAL_MSG(MSG_HOST_COUNT_X);
+    SERIAL_MSG("STEP X:");
   #endif
   SERIAL_VAL(xpos);
 
@@ -1194,7 +1194,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
               HAL::delayNanoseconds(data.direction_delay);
             start_X_step();
             start_Y_step();
-            HAL::delayNanoseconds(HAL_pulse_high_tick);
+            HAL::delayNanoseconds(HAL_pulse_high_tick*500);
             stop_X_step();
             stop_Y_step();
             set_X_dir(old_X_dir);
@@ -1210,7 +1210,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
               HAL::delayNanoseconds(data.direction_delay);
             start_X_step();
             start_Z_step();
-            HAL::delayNanoseconds(HAL_pulse_high_tick);
+            HAL::delayNanoseconds(HAL_pulse_high_tick*500);
             stop_X_step();
             stop_Z_step();
             set_X_dir(old_X_dir);
@@ -1222,7 +1222,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
             if (data.direction_delay >= 50)
               HAL::delayNanoseconds(data.direction_delay);
             start_X_step();
-            HAL::delayNanoseconds(HAL_pulse_high_tick);
+            HAL::delayNanoseconds(HAL_pulse_high_tick*500);
             stop_X_step();
             set_X_dir(old_X_dir);
           #endif
@@ -1240,7 +1240,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
               HAL::delayNanoseconds(data.direction_delay);
             start_X_step();
             start_Y_step();
-            HAL::delayNanoseconds(HAL_pulse_high_tick);
+            HAL::delayNanoseconds(HAL_pulse_high_tick*500);
             stop_X_step();
             stop_Y_step();
             set_X_dir(old_X_dir);
@@ -1256,7 +1256,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
               HAL::delayNanoseconds(data.direction_delay);
             start_Y_step();
             start_Z_step();
-            HAL::delayNanoseconds(HAL_pulse_high_tick);
+            HAL::delayNanoseconds(HAL_pulse_high_tick*500);
             stop_Y_step();
             stop_Z_step();
             set_Y_dir(old_Y_dir);
@@ -1268,7 +1268,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
             if (data.direction_delay >= 50)
               HAL::delayNanoseconds(data.direction_delay);
             start_Y_step();
-            HAL::delayNanoseconds(HAL_pulse_high_tick);
+            HAL::delayNanoseconds(HAL_pulse_high_tick*500);
             stop_Y_step();
             set_Y_dir(old_Y_dir);
           #endif
@@ -1289,7 +1289,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
             HAL::delayNanoseconds(data.direction_delay);
           start_X_step();
           start_Z_step();
-          HAL::delayNanoseconds(HAL_pulse_high_tick);
+          HAL::delayNanoseconds(HAL_pulse_high_tick*500);
           stop_X_step();
           stop_Z_step();
           set_X_dir(old_X_dir);
@@ -1305,7 +1305,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
             HAL::delayNanoseconds(data.direction_delay);
           start_Y_step();
           start_Z_step();
-          HAL::delayNanoseconds(HAL_pulse_high_tick);
+          HAL::delayNanoseconds(HAL_pulse_high_tick*500);
           stop_Y_step();
           stop_Z_step();
           set_Y_dir(old_Y_dir);
@@ -1317,7 +1317,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
           if (data.direction_delay >= 50)
             HAL::delayNanoseconds(data.direction_delay);
           start_Z_step();
-          HAL::delayNanoseconds(HAL_pulse_high_tick);
+          HAL::delayNanoseconds(HAL_pulse_high_tick*500);
           stop_Z_step();
           set_Z_dir(old_Z_dir);
         #else // DELTA
@@ -1343,7 +1343,7 @@ void Stepper::set_position(const AxisEnum a, const int32_t &v) {
           start_Y_step();
           start_Z_step();
 
-          HAL::delayNanoseconds(HAL_pulse_high_tick);
+          HAL::delayNanoseconds(HAL_pulse_high_tick*500);
 
           stop_X_step();
           stop_Y_step();

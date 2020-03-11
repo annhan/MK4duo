@@ -47,7 +47,7 @@
  *
  * Valid values are -1 to 3 for Serial, Serial1, Serial2, Serial3 and -1 for SerialUSB
  */
-#define SERIAL_PORT_1 0
+#define SERIAL_PORT_1 1
 
 /**
  * This setting determines the communication speed of the printer on primary port.
@@ -58,7 +58,7 @@
  *
  * 2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000
  */
-#define BAUDRATE_1 250000
+#define BAUDRATE_1 115200
 
 /**
  * Select a secondary serial port on the board to use for communication with the host.
@@ -78,7 +78,7 @@
  *
  * 2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000
  */
-#define BAUDRATE_2 250000
+#define BAUDRATE_2 115200
 
 /**
  * The number of linear motions that can be in the plan at any give time.
@@ -165,17 +165,17 @@
  * enter the serial receive buffer, so they cannot be blocked.
  * Currently handles M108, M112, M410
  */
-//#define EMERGENCY_PARSER
+#define EMERGENCY_PARSER
 
 /**
  * Spend 28 bytes of SRAM to optimize the GCode parser
  */
-//#define FASTER_GCODE_PARSER
+#define FASTER_GCODE_PARSER
 
 /**
  * Spend more bytes of SRAM to optimize the GCode execute
  */
-//#define FASTER_GCODE_EXECUTE
+#define FASTER_GCODE_EXECUTE
 
 /**
  * Host Keepalive
@@ -198,7 +198,15 @@
  * See: https://github.com/MagoKimbra/MK4duo/blob/master/Documentation/Hardware.md *
  *                                                                                       *
  *****************************************************************************************/
-#define MOTHERBOARD BOARD_RAMPS_13_HFB
+
+ //M352 X E37 D34 S35 L0 M0
+ /*
+ onfig:  M352 X E37 D34 S35 L1 M1
+Config:  M352 Y E33 D23 S22 L0 M0 -> M352 Y E33 D23 S22 L0 M0
+Config:  M352 Z E24 D26 S25 L0 M0
+Config:  M352 T0 E48 D46 S47 L0 M0
+*/
+#define MOTHERBOARD BOARD_ULTRATRONICS
 /*****************************************************************************************/
 
 
@@ -219,7 +227,7 @@
  * MECH_MUVE3D          - Muve 3D with serial projector                *
  *                                                                     *
  ***********************************************************************/
-#define MECHANISM MECH_CARTESIAN
+#define MECHANISM MECH_MAKERARM_SCARA
 /***********************************************************************/
 
 

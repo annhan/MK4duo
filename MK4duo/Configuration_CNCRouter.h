@@ -47,7 +47,7 @@
 //===========================================================================
 
 // Enable speed control by PWM
-//#define FAST_PWM_CNCROUTER 
+#define FAST_PWM_CNCROUTER 
 
 // router speed settings in rpm
 #define MAX_CNCROUTER_SPEED 32000

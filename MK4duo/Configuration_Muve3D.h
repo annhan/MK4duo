@@ -238,6 +238,7 @@
 #define Z_MAX_POS 240
 #define Z_MIN_POS 0
 #define E_MIN_POS 0
+
 /*****************************************************************************************/
 
 
@@ -335,7 +336,7 @@
  *****************************************************************************************/
 #define DEFAULT_XJERK 10.0
 #define DEFAULT_YJERK 10.0
-#define DEFAULT_ZJERK  0.4
+#define DEFAULT_ZJERK 10.0
 // E0... (mm/sec) per extruder
 #define DEFAULT_EJERK {0.4}
 /*****************************************************************************************/
@@ -347,7 +348,7 @@
 // Homing speeds (mm/m)
 #define HOMING_FEEDRATE_X (50*60)
 #define HOMING_FEEDRATE_Y (50*60)
-#define HOMING_FEEDRATE_Z (5*60)
+#define HOMING_FEEDRATE_Z (50*60)
 
 // homing hits the endstop, then retracts by this distance, before it tries to slowly bump again:
 #define X_HOME_BUMP_MM 5

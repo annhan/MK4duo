@@ -550,7 +550,7 @@
 #define E_STEPS_PER_MM   (1.0 * NEMA_FULLSTEPS * E_MICROSTEPPING * E_GEARBOX_RATIO / (E_GEAR_DIAMETER * M_PI))
 
 // Default steps per unit               X,    Y,   Z,  E0...(per extruder)
-#define DEFAULT_AXIS_STEPS_PER_UNIT   { STEPS_PER_DEGREE, STEPS_PER_DEGREE, Z_STEPS_PER_MM, E_STEPS_PER_MM }
+#define DEFAULT_AXIS_STEPS_PER_UNIT   { STEPS_PER_DEGREE, STEPS_PER_DEGREE, Z_STEPS_PER_MM, E_STEPS_PER_MM, E_STEPS_PER_MM, E_STEPS_PER_MM, E_STEPS_PER_MM }
 /*****************************************************************************************/
 
 
@@ -560,7 +560,7 @@
 //                                       X,   Y,   Z,  E0...(per extruder). (mm/sec)
 #define DEFAULT_MAX_FEEDRATE          {500, 500, 500, 100, 100, 100, 100}
 // Feedrates for manual moves along        X,     Y,     Z,  E from panel
-#define MANUAL_FEEDRATE               {50*60, 50*60, 50*60, 10*60}
+#define MANUAL_FEEDRATE               {50*60, 50*60, 50*60, 10*60, 10*60, 10*60, 10*60}
 // (mm) Smallest manual Z move (< 0.1mm)
 #define SHORT_MANUAL_Z_MOVE           0.025
 // Minimum feedrate
@@ -577,7 +577,7 @@
  ******************************** Axis acceleration **************************************
  *****************************************************************************************/
 //  Maximum start speed for accelerated moves.    X,    Y,  Z,   E0...(per extruder)
-#define DEFAULT_MAX_ACCELERATION              {172, 344, 100, 10000}
+#define DEFAULT_MAX_ACCELERATION              {172, 344, 100, 10000, 10000, 10000, 10000}
 //  Maximum acceleration in mm/s^2 for retracts   E0... (per extruder)
 #define DEFAULT_RETRACT_ACCELERATION          {3000}
 //  X, Y, Z and E* maximum acceleration in mm/s^2 for printing moves

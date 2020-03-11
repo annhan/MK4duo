@@ -154,10 +154,11 @@ void Mechanics::prepare_move_to_destination() {
       #else
         mechanics.prepare_move_to_destination_mech_specific()
       #endif
-    ) return;
+    ) {SERIAL_EM("DÂDAAAAAAAAA CONNECT");
+	return;}
   }
-
-  position = destination;
+	SERIAL_EM("SSSSSSSSSSSSSSSS DDD");
+	position = destination;
 }
 
 void Mechanics::setup_for_endstop_or_probe_move() {

@@ -31,7 +31,7 @@
 // Struct Scara Settings
 typedef struct : public generic_data_t {
 
-  float_limits_t base_pos[XYZ];
+  float_limit_t  base_pos[XYZ];
 
   float         base_home_pos[XYZ],
                 segments_per_second;

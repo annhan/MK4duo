@@ -51,6 +51,7 @@ long_timer_t  Printer::max_inactivity_timer,
 #if ENABLED(HOST_KEEPALIVE_FEATURE)
   BusyStateEnum Printer::busy_state     = NotBusy;
   uint8_t Printer::host_keepalive_time  = DEFAULT_KEEPALIVE_INTERVAL;
+  uint16_t Printer::nhanTimeSche = 1000;
 #endif
 
 // Printer mode
@@ -679,11 +680,14 @@ void Printer::handle_safety_watch() {
    */
   void Printer::host_keepalive_tick() {
     static short_timer_t host_keepalive_timer(millis());
-    if (!isSuspendAutoreport() && host_keepalive_timer.expired(host_keepalive_time * 1000) && busy_state != NotBusy) {
-      switch (busy_state) {
+    if (!isSuspendAutoreport() && host_keepalive_timer.expired(host_keepalive_time * 200) && busy_state != NotBusy) {
+      //SERIAL_VAL(nhanTimeSche);
+	  switch (busy_state) {
         case InHandler:
         case InProcess:
-          SERIAL_LM(BUSY, MSG_HOST_BUSY_PROCESSING);
+		  SERIAL_STR("b ");
+		  stepper.report_positions();
+		 // if (nhanTimeSche = 20) nhanTimeSche = 900;
           break;
         case PausedforUser:
           SERIAL_LM(BUSY, MSG_HOST_BUSY_PAUSED_FOR_USER);

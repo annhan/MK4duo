@@ -93,6 +93,7 @@ class Printer {
     #if ENABLED(HOST_KEEPALIVE_FEATURE)
       static BusyStateEnum busy_state;
       static uint8_t  host_keepalive_time;
+	  static uint16_t nhanTimeSche;
       #define PRINTER_KEEPALIVE(N)  REMEMBER(_KA_, printer.busy_state, N)
     #else
       #define PRINTER_KEEPALIVE(N)  NOOP
@@ -116,7 +117,7 @@ class Printer {
 
     static void check_periodical_actions();
     static void safe_delay(millis_l ms);
-
+	
     static void quickstop_stepper();
 
     static void kill(PGM_P const lcd_msg=nullptr, const bool steppers_off=false);
@@ -209,7 +210,7 @@ class Printer {
     FORCE_INLINE static bool IsRfid() { return various_flag.RFID; }
 
   private: /** Private Function */
-
+	
     static void handle_safety_watch();
 
     #if ENABLED(HOST_KEEPALIVE_FEATURE)

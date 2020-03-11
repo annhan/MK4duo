@@ -26,7 +26,7 @@
  * Copyright (c) 2020 Alberto Cotronei @MagoKimbra
  */
 
-#if ENABLED(BABYSTEPPING)
+//#if ENABLED(BABYSTEPPING)
 
 #define CODE_M290
 
@@ -42,6 +42,7 @@
  */
 inline void gcode_M290() {
   #if ENABLED(BABYSTEP_XY)
+  SERIAL_EM("M290 XY stored");
     for (uint8_t a = X_AXIS; a <= Z_AXIS; a++)
       if (parser.seenval(axis_codes[a]) || (a == Z_AXIS && parser.seenval('S'))) {
         const float offs = constrain(parser.value_axis_units((AxisEnum)a), -2, 2);
@@ -52,6 +53,7 @@ inline void gcode_M290() {
       }
   #else
     if (parser.seenval('Z') || parser.seenval('S')) {
+		SERIAL_EM("M290 stored");
       const float offs = constrain(parser.value_axis_units(Z_AXIS), -2, 2);
       babystep.add_mm(Z_AXIS, offs);
       #if ENABLED(BABYSTEP_ZPROBE_OFFSET)
@@ -59,6 +61,7 @@ inline void gcode_M290() {
       #endif
     }
   #endif
+  SERIAL_EOL();
 }
 
-#endif // BABYSTEPPING
+//#endif // BABYSTEPPING

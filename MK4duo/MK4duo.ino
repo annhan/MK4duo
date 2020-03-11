@@ -1,4 +1,9 @@
 /**
+ * 
+Error:Printer stopped due to errors. Fix the error and use M999 to restart. (Temperature is reset. Set it after restarting)
+//action:notification STOPPED.
+ * NEMA_FULLSTEPS = 200 buoc la 1.8 độ ( 1 buoc = 1.8
+ * (1.0 * NEMA_FULLSTEPS * AB_MICROSTEPPING * AB_HDRIVE_RATIO / 360.0)
  * MK4duo Firmware for 3D Printer, Laser and CNC
  *
  * Based on Marlin, Sprinter and grbl
@@ -81,7 +86,7 @@
  * M0   - Unconditional stop - Wait for user to press a button on the LCD.
  * M1   -> M0
  * M3   - S[value] L[duration] P[ppm] D[diagnostic] B[set mode] in laser beam control. (Requires LASER)
- *        S[value] CNC clockwise speed. (Requires CNCROUTERS)
+ *        S[value] CNC clockwise speed.(Requires CNCROUTERS)
  * M4   - S[value] CNC counter clockwise speed. (Requires CNCROUTERS)
  * M5   - Turn laser/spindle off. (Requires LASER or Requires CNCROUTERS)
  * M6   - Tool change CNC. (Requires CNCROUTERS)

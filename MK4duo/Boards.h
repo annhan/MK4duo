@@ -19,12 +19,83 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
+/*
+58-18
+ */
+
+/*
+ * 
+ * 
+cAI dAT
+M352 Y M1
+ */
+ /*
+ onfig:  G21    ; Units in (mm)
+Config:Steps per unit:
+Config:  M92 X80.000 Y80.000 Z3200.000
+Config:  M92 T0 E625.000
+Config:Maximum Acceleration (units/s2):
+Config:  M201 X3000 Y3000 Z50
+Config:  M201 T0 E1000
+Config:Maximum feedrates (units/s):
+Config:  M203 X300.000 Y300.000 Z2.000
+Config:  M203 T0 E100.000
+Config:Acceleration (units/s2): P<DEFAULT_ACCELERATION> V<DEFAULT_TRAVEL_ACCELERATION> T* R<DEFAULT_RETRACT_ACCELERATION>
+Config:  M204 P3000.000 V3000.000
+Config:  M204 T0 R10000.000
+Config:Advanced: B<DEFAULT_MIN_SEGMENT_TIME> S<DEFAULT_MIN_FEEDRATE> V<DEFAULT_MIN_TRAVEL_FEEDRATE>
+Config:  M205 B20000 S0.000 V0.000
+Config:Jerk: X<DEFAULT_XJERK> Y<DEFAULT_YJERK> Z<DEFAULT_ZJERK> T* E<DEFAULT_EJERK>
+Config:  M205 X10.000 Y10.000 Z0.400
+Config:  M205 T0 E5.000
+Config:Set axis max travel:
+Config:  M228 S0 X200.000 Y200.000 Z200.000
+Config:Set axis min travel:
+Config:  M228 S1 X0.000 Y0.000 Z0.000
+Config:Total number D<driver extruder> E<Extruder> H<Hotend> B<Bed> C<Chamber> <Fan>
+Config:  M353 D1 E1 H1 B0 C0 F2
+Config:Hotend assignment T<Tool> H<Hotend>
+Config:  M563 T0 D0 H0
+Config:Heater Sensor parameters: H<Heater> P<Pin> S<Type> A<R25> B<BetaK> C<Steinhart-Hart C> R<Pullup> L<ADC low offset> O<ADC high offset>:
+Config:  M305 H0 P0 S1 A100000.0 B4092.0 C0.0000000000 R4700.0 L0 O0
+Config:Heater parameters: H<Heater> P<Pin> A<Power Drive Min> B<Power Drive Max> C<Power Max> F<Freq> L<Min Temp> O<Max Temp> U<Use Pid 0-1> I<Hardware Inverted 0-1> R<Thermal Protection 0-1> Q<Pwm Hardware 0-1>:
+Config:  M306 H0 P3 A40 B230 C255 F250 L5 O275 U1 I0 Q1 R0
+Config:Heater PID parameters: H<Heater> P<Proportional> I<Integral> D<Derivative>:
+Config:  M301 H0 P40.00 I7.00 D60.00
+Config:Z raise: Z<point>:
+Config:  M217 Z1.00
+Config:Hotend offset (unit): T<Tool> X<offset> Y<offset> Z<offset>:
+Config:  M218 T0 X0.000 Y0.000 Z0.000
+Config:Fans: P<Fan> U<Pin> L<Min Speed> X<Max Speed> I<Hardware Inverted 0-1> H<Auto mode> T<Trig Temp> F<Freq>
+Config:  M106 P0 U6 L0 X255 F250 I0 H-1
+Config:Fans: P<Fan> U<Pin> L<Min Speed> X<Max Speed> I<Hardware Inverted 0-1> H<Auto mode> T<Trig Temp>
+Config:  M106 P1 U5 L0 X255 I0 H0 T50
+Config:Endstops logic:
+Config:  M123 X0 Y0 Z0
+Config:Endstops pullup:
+Config:  M124 X0 Y0 Z0
+Config:Stepper driver pins E<En pin> D<Dir pin> S<Step pin> L<En logic> M<Step logic>
+Config:  M352 X E37 D34 S35 L0 M0
+Config:  M352 Y E33 D23 S22 L0 M0
+Config:  M352 Z E24 D26 S25 L0 M0
+Config:  M352 T0 E48 D46 S47 L0 M0
+Config:Stepper Direction
+Config:  M569 X0 Y0 Z0
+Config:  M569 T0 E0
+Config:Stepper driver control Q<Quad stepping> D<Dir delay> P<min pulse> R<max rate>
+Config:  M569 Q1 D0 P0 R500000
+Stats: Total:0, Finished:0, Failed:0
+Stats: Total print time:0s, Longest job:0s
+Stats: Power on time:2m 0s
+  */
 #pragma once
 
 // Macros for board type
 #define BOARD_UNKNOWN -1
+//#define MB(board) (MOTHERBOARD==1705)
 #define MB(board) (MOTHERBOARD==BOARD_##board)
 
+//#define BOARD_ULTRATRONICS    1705    // Ultratronics v1.0 ARM 32 bit board
 /**
  * RAMPS 1.3 / 1.4 - ATmega1280, ATmega2560
  */

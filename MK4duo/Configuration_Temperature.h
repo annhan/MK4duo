@@ -239,7 +239,7 @@
  *                                                                     *
  ***********************************************************************/
 // Put to false following line to disable PID and enable bang-bang.
-#define PIDTEMP true
+#define PIDTEMP false
 
 #define POWER_MAX       255 // Limits current to nozzle;                                    255 = full current
 #define POWER_DRIVE_MIN  40 // Limits min current to nozzle while PID/BANG_BANG is active;    0 = no current
