@@ -372,7 +372,7 @@
 //
 // Nextion 4.3" - 5" Enanched - 7" Enanched and intelligent HMI panel
 //
-//#define NEXTION
+#define NEXTION
 
 // Define Serial it use
 #define NEXTION_SERIAL 1
@@ -384,7 +384,7 @@
 #define NEXTION_MAX_MESSAGE_LENGTH 30
 
 // For GFX preview visualization enable NEXTION GFX
-//#define NEXTION_GFX
+#define NEXTION_GFX
 
 // Define name firmware file for Nextion on SD
 #define NEXTION_FIRMWARE_FILE "mk4duo.tft"

@@ -227,7 +227,7 @@ Config:  M352 T0 E48 D46 S47 L0 M0
  * MECH_MUVE3D          - Muve 3D with serial projector                *
  *                                                                     *
  ***********************************************************************/
-#define MECHANISM MECH_MAKERARM_SCARA
+#define MECHANISM MECH_MORGAN_SCARA
 /***********************************************************************/
 
 
