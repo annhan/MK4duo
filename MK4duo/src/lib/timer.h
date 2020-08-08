@@ -26,6 +26,11 @@
  * Copyright (c) 2018 Alberto Cotronei @MagoKimbra
  */
 
+// Conversion define
+#define SECOND_TO_MILLIS(S) ((S)*1000UL)
+#define MINUTE_TO_MILLIS(M) SECOND_TO_MILLIS((M)*60UL)
+#define MILLIS_TO_SECOND(M) ((M)/1000UL)
+
 template <class T>
 class timer {
 
@@ -54,10 +59,10 @@ class timer {
       if (!running || !period_ms) return false;
       bool expired = false;
       const T now = millis();
-      if (ms <= ms + period_ms) {
-        if ((now >= ms + period_ms) || (now < ms)) expired = true;
+      if (ms <= T(ms + period_ms)) {
+        if ((now >= T(ms + period_ms)) || (now < ms)) expired = true;
       }
-      else if ((now >= ms + period_ms) && (now < ms)) expired = true;
+      else if ((now >= T(ms + period_ms)) && (now < ms)) expired = true;
       if (expired) {
         renew ? ms = now : running = false;
       }

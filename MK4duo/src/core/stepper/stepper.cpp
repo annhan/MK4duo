@@ -194,7 +194,7 @@ void Stepper::create_xyz_driver() {
       driver[d]->printLabel(); SERIAL_EOL();
       driver[d]->init();
       #if MB(ALLIGATOR_R2) || MB(ALLIGATOR_R3)
-        externaldac.set_driver_current(d, driver[d]->data.ma);
+        externaldac.set_driver_current(driver[d]);
       #endif
     }
   }
@@ -253,7 +253,7 @@ void Stepper::create_ext_driver() {
       driver.e[d]->printLabel(); SERIAL_EOL();
       driver.e[d]->init();
       #if MB(ALLIGATOR_R2) || MB(ALLIGATOR_R3)
-        externaldac.set_driver_current(d + 3, driver.e[d]->data.ma);
+        externaldac.set_driver_current(driver.e[d]);
       #endif
     }
   }
@@ -506,29 +506,16 @@ int32_t Stepper::position(const AxisEnum axis) {
   return v;
 }
 
-void Stepper::report_positions() {
-
-  #ifdef __AVR__
-    // Protect the access to the position.
-    const bool isr_enabled = suspend();
-  #endif
-
-  const int32_t xpos = count_position.x,
-                ypos = count_position.y,
-                zpos = count_position.z;
-
-  #ifdef __AVR__
-    if (isr_enabled) wake_up();
-  #endif
+void Stepper::report_positions(const xyz_long_t &pos) {
 
   #if CORE_IS_XY || CORE_IS_XZ || IS_SCARA
-    SERIAL_MSG(MSG_HOST_COUNT_A);
+    SERIAL_MSG(STR_COUNT_A);
   #elif MECH(DELTA)
-    SERIAL_MSG(MSG_HOST_COUNT_ALPHA);
+    SERIAL_MSG(STR_COUNT_ALPHA);
   #else
-    SERIAL_MSG("STEP X:");
+    SERIAL_MSG(STR_COUNT_X);
   #endif
-  SERIAL_VAL(xpos);
+  SERIAL_VAL(pos.x);
 
   #if CORE_IS_XY || CORE_IS_YZ || IS_SCARA
     SERIAL_MSG(" B:");
@@ -537,7 +524,7 @@ void Stepper::report_positions() {
   #else
     SERIAL_MSG(" Y:");
   #endif
-  SERIAL_VAL(ypos);
+  SERIAL_VAL(pos.y);
 
   #if CORE_IS_XZ || CORE_IS_YZ
     SERIAL_MSG(" C:");
@@ -546,9 +533,27 @@ void Stepper::report_positions() {
   #else
     SERIAL_MSG(" Z:");
   #endif
-  SERIAL_VAL(zpos);
+  SERIAL_VAL(pos.z);
 
   SERIAL_EOL();
+
+}
+
+void Stepper::report_positions() {
+
+  #ifdef __AVR__
+    // Protect the access to the position.
+    const bool isr_enabled = suspend();
+  #endif
+
+  const xyz_long_t pos = count_position;
+
+  #ifdef __AVR__
+    if (isr_enabled) wake_up();
+  #endif
+
+  report_positions(pos);
+
 }
 
 void Stepper::reset_drivers() {
@@ -1005,9 +1010,9 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
   }
 
   void Stepper::microstep_readings() {
-    SERIAL_MSG(MSG_HOST_MICROSTEP_MS1_MS2);
+    SERIAL_MSG(STR_MICROSTEP_MS1_MS2);
     #if HAS_X_MICROSTEPS
-      SERIAL_MSG(MSG_HOST_MICROSTEP_X);
+      SERIAL_MSG(STR_MICROSTEP_X);
       SERIAL_VAL(READ(X_MS1_PIN));
       #if PIN_EXISTS(X_MS2)
         SERIAL_EV(READ(X_MS2_PIN));
@@ -1016,7 +1021,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_Y_MICROSTEPS
-      SERIAL_MSG(MSG_HOST_MICROSTEP_Y);
+      SERIAL_MSG(STR_MICROSTEP_Y);
       SERIAL_VAL(READ(Y_MS1_PIN));
       #if PIN_EXISTS(Y_MS2)
         SERIAL_EV(READ(Y_MS2_PIN));
@@ -1025,7 +1030,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_Z_MICROSTEPS
-      SERIAL_MSG(MSG_HOST_MICROSTEP_Z);
+      SERIAL_MSG(STR_MICROSTEP_Z);
       SERIAL_VAL(READ(Z_MS1_PIN));
       #if PIN_EXISTS(Z_MS2)
         SERIAL_EV(READ(Z_MS2_PIN));
@@ -1034,7 +1039,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_E0_MICROSTEPS
-      SERIAL_MV(MSG_HOST_MICROSTEP_E, 0);
+      SERIAL_MV(STR_MICROSTEP_E, 0);
       SERIAL_MV(":", READ(E0_MS1_PIN));
       #if PIN_EXISTS(E0_MS2)
         SERIAL_EMV(" ", READ(E0_MS2_PIN));
@@ -1043,7 +1048,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_E1_MICROSTEPS
-      SERIAL_MV(MSG_HOST_MICROSTEP_E, 1);
+      SERIAL_MV(STR_MICROSTEP_E, 1);
       SERIAL_MV(":", READ(E1_MS1_PIN));
       #if PIN_EXISTS(E1_MS2)
         SERIAL_EMV(" ", READ(E1_MS2_PIN));
@@ -1052,7 +1057,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_E2_MICROSTEPS
-      SERIAL_MV(MSG_HOST_MICROSTEP_E, 2);
+      SERIAL_MV(STR_MICROSTEP_E, 2);
       SERIAL_MV(":", READ(E2_MS1_PIN));
       #if PIN_EXISTS(E2_MS2)
         SERIAL_EMV(" ", READ(E2_MS2_PIN));
@@ -1061,7 +1066,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_E3_MICROSTEPS
-      SERIAL_MV(MSG_HOST_MICROSTEP_E, 3);
+      SERIAL_MV(STR_MICROSTEP_E, 3);
       SERIAL_MV(":", READ(E3_MS1_PIN));
       #if PIN_EXISTS(E3_MS2)
         SERIAL_EMV(" ", READ(E3_MS2_PIN));
@@ -1070,7 +1075,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_E4_MICROSTEPS
-      SERIAL_MV(MSG_HOST_MICROSTEP_E, 4);
+      SERIAL_MV(STR_MICROSTEP_E, 4);
       SERIAL_MV(":", READ(E4_MS1_PIN));
       #if PIN_EXISTS(E4_MS2)
         SERIAL_EMV(" ", READ(E4_MS2_PIN));
@@ -1079,7 +1084,7 @@ int32_t Stepper::triggered_position(const AxisEnum axis) {
       #endif
     #endif
     #if HAS_E5_MICROSTEPS
-      SERIAL_MV(MSG_HOST_MICROSTEP_E, 5);
+      SERIAL_MV(STR_MICROSTEP_E, 5);
       SERIAL_MV(":", READ(E5_MS1_PIN));
       #if PIN_EXISTS(E5_MS2)
         SERIAL_EMV(" ", READ(E5_MS2_PIN));
@@ -1481,7 +1486,7 @@ void Stepper::pulse_phase_step() {
 uint32_t Stepper::block_phase_step() {
 
   // If no queued movements, just wait 1ms for the next block
-  uint32_t interval = (STEPPER_TIMER_RATE) / 1000UL;
+  uint32_t interval = MILLIS_TO_SECOND(STEPPER_TIMER_RATE);
 
   // If there is a current block
   if (current_block) {

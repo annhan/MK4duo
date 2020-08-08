@@ -34,14 +34,23 @@ Commands commands;
 /** Public Parameters */
 Circular_Queue<gcode_t, BUFSIZE> Commands::buffer_ring;
 
+/**
+ * Next Injected PROGMEM Command pointer. (nullptr == empty)
+ * Internal commands are enqueued ahead of serial / SD commands.
+ */
+PGM_P Commands::injected_cmd_P = nullptr;
+
+/**
+ * Injected SRAM Commands
+ */
+char Commands::injected_cmd[64] = { 0 };
+
 long Commands::gcode_last_N = 0;
 
 /** Private Parameters */
 long Commands::gcode_N = 0;
 
 int Commands::serial_count[NUM_SERIAL] = { 0 };
-
-PGM_P Commands::injected_commands_P = nullptr;
 
 /** Public Function */
 void Commands::flush_and_request_resend() {
@@ -50,6 +59,12 @@ void Commands::flush_and_request_resend() {
   ok_to_send();
 }
 
+/**
+ * Add to the circular command queue the next command from:
+ *  - The command-injection queues (injected_cmd_P, injected_cmd)
+ *  - The active serial input (usually USB)
+ *  - The SD card file being actively printed
+ */
 void Commands::get_available() {
   if (buffer_ring.isFull()) return;
   get_serial();
@@ -61,7 +76,7 @@ void Commands::get_available() {
 void Commands::advance_queue() {
 
   // Process immediate commands
-  if (process_injected()) return;
+  if (process_injected_P() || process_injected()) return;
 
   // Return if the G-code buffer is empty
   if (!buffer_ring.count()) return;
@@ -108,12 +123,23 @@ void Commands::clear_queue() {
   buffer_ring.clear();
 }
 
-void Commands::inject_P(PGM_P const pgcode) {
-  injected_commands_P = pgcode;
-}
-
 void Commands::enqueue_one_now(const char * cmd) {
   while (!enqueue_one(cmd)) printer.idle();
+}
+
+/**
+ * Attempt to enqueue a single G-code command
+ * and return 'true' if successful.
+ */
+bool Commands::enqueue_one_P(PGM_P const pgcode) {
+  size_t i = 0;
+  PGM_P p = pgcode;
+  char c;
+  while ((c = pgm_read_byte(&p[i])) && c != '\n') i++;
+  char cmd[i + 1];
+  memcpy_P(cmd, p, i);
+  cmd[i] = '\0';
+  return enqueue(cmd);
 }
 
 void Commands::enqueue_now_P(PGM_P const pgcode) {
@@ -154,6 +180,7 @@ void Commands::process_now(char * gcode) {
     char * const delim = strchr(gcode, '\n');         // Get address of next newline
     if (delim) *delim = '\0';                         // Replace with nul
     parser.parse(gcode);                              // Parse the current command
+    if (delim) *delim = '\n';                         // Put back the newline
     process_parsed(false);                            // Process it
     if (!delim) break;                                // Last command?
     gcode = delim + 1;                                // Get the next command
@@ -215,7 +242,7 @@ bool Commands::get_target_tool(const uint16_t code) {
     const int8_t t = parser.value_byte();
     if (t >= toolManager.extruder.total) {
       SERIAL_SMV(ECHO, "M", code);
-      SERIAL_EMV(" " MSG_HOST_INVALID_EXTRUDER " ", t);
+      SERIAL_EMV(" " STR_INVALID_EXTRUDER " ", t);
       return true;
     }
     toolManager.extruder.target = t;
@@ -231,7 +258,7 @@ bool Commands::get_target_driver(const uint16_t code) {
     const int8_t t = parser.value_byte();
     if (t >= MAX_DRIVER_E) {
       SERIAL_SMV(ECHO, "M", code);
-      SERIAL_EMV(" " MSG_HOST_INVALID_DRIVER " ", t);
+      SERIAL_EMV(" " STR_INVALID_DRIVER " ", t);
       return true;
     }
     toolManager.extruder.target = t;
@@ -260,7 +287,7 @@ Heater* Commands::get_target_heater() {
     if (h == -3 && WITHIN(t, 0 , tempManager.heater.coolers - 1)) return coolers[t];
   #endif
 
-  SERIAL_LM(ER, MSG_HOST_INVALID_HEATER);
+  SERIAL_LM(ER, STR_INVALID_HEATER);
   return nullptr;
 
 }
@@ -351,7 +378,7 @@ void Commands::get_serial() {
           gcode_N = strtol(npos + 1, nullptr, 10);
 
           if (gcode_N != gcode_last_N + 1 && !M110) {
-            gcode_line_error(PSTR(MSG_HOST_ERR_LINE_NO), i);
+            gcode_line_error(PSTR(STR_ERR_LINE_NO), i);
             return;
           }
 
@@ -360,12 +387,12 @@ void Commands::get_serial() {
             uint8_t checksum = 0, count = uint8_t(apos - command);
             while (count) checksum ^= command[--count];
             if (strtol(apos + 1, nullptr, 10) != checksum) {
-              gcode_line_error(PSTR(MSG_HOST_ERR_CHECKSUM_MISMATCH), i);
+              gcode_line_error(PSTR(STR_ERR_CHECKSUM_MISMATCH), i);
               return;
             }
           }
           else {
-            gcode_line_error(PSTR(MSG_HOST_ERR_NO_CHECKSUM), i);
+            gcode_line_error(PSTR(STR_ERR_NO_CHECKSUM), i);
             return;
           }
 
@@ -374,7 +401,7 @@ void Commands::get_serial() {
         #if HAS_SD_SUPPORT
           // Pronterface "M29" and "M29 " has no line number
           else if (card.isSaving() && !is_M29(command)) {
-            gcode_line_error(PSTR(MSG_HOST_ERR_NO_CHECKSUM), i);
+            gcode_line_error(PSTR(STR_ERR_NO_CHECKSUM), i);
             return;
           }
         #endif
@@ -395,7 +422,7 @@ void Commands::get_serial() {
               #if ENABLED(G5_BEZIER)
                 case 5:
               #endif
-                SERIAL_LM(ER, MSG_HOST_ERR_STOPPED);
+                SERIAL_LM(ER, STR_ERR_STOPPED);
                 LCD_MESSAGEPGM(MSG_STOPPED);
                 break;
             }
@@ -458,7 +485,7 @@ void Commands::get_serial() {
       const int16_t n = card.get();
       card_eof = card.eof();
 
-      if (n < 0 && !card_eof) { SERIAL_LM(ER, MSG_HOST_SD_ERR_READ); continue; }
+      if (n < 0 && !card_eof) { SERIAL_LM(ER, STR_SD_ERR_READ); continue; }
 
       const char sd_char  = (char)n;
       const bool is_eol   = sd_char == '\n' || sd_char == '\r';
@@ -512,8 +539,7 @@ void Commands::unknown_warning() {
     gcode_t tmp = buffer_ring.peek();
     SERIAL_PORT(tmp.s_port);
   #endif
-
-  SERIAL_SMT(ECHO, MSG_HOST_UNKNOWN_COMMAND, parser.command_ptr);
+  SERIAL_SMT(ECHO, STR_UNKNOWN_COMMAND, parser.command_ptr);
   SERIAL_CHR('"');
   SERIAL_EOL();
   SERIAL_PORT(-1);
@@ -547,7 +573,7 @@ bool Commands::enqueue_one(const char * cmd) {
     return true;
 
   if (enqueue(cmd)) {
-    SERIAL_SMT(ECHO, MSG_HOST_ENQUEUEING, cmd);
+    SERIAL_SMT(ECHO, STR_ENQUEUEING, cmd);
     SERIAL_CHR('"');
     SERIAL_EOL();
     return true;
@@ -569,25 +595,58 @@ bool Commands::enqueue(const char * cmd, bool say_ok/*=false*/, int8_t port/*=-2
   return true;
 }
 
-bool Commands::process_injected() {
+/**
+ * Process the next "immediate" command from PROGMEM.
+ * Return 'true' if any commands were processed.
+ */
+bool Commands::process_injected_P() {
 
-  if (injected_commands_P == nullptr) return false;
+  if (injected_cmd_P == nullptr) return false;
 
   char c;
   size_t i = 0;
-  while ((c = pgm_read_byte(&injected_commands_P[i])) && c != '\n') i++;
+  while ((c = pgm_read_byte(&injected_cmd_P[i])) && c != '\n') i++;
 
   // Extract current command and move pointer to next command
   char cmd[i + 1];
-  memcpy_P(cmd, injected_commands_P, i);
+  memcpy_P(cmd, injected_cmd_P, i);
   cmd[i] = '\0';
-  injected_commands_P = c ? injected_commands_P + i + 1 : nullptr;
+  injected_cmd_P = c ? injected_cmd_P + i + 1 : nullptr;
 
   // Execute command if non-blank
   if (i) {
     parser.parse(cmd);
     process_parsed();
   }
+
+  return true;
+}
+
+/**
+ * Process the next "immediate" command from SRAM.
+ * Return 'true' if any commands were processed.
+ */
+bool Commands::process_injected() {
+
+  if (injected_cmd[0] == '\0') return false;
+
+  char c;
+  size_t i = 0;
+  while ((c = injected_cmd[i]) && c != '\n') i++;
+
+  // Execute a non-blank command
+  if (i) {
+    injected_cmd[i] = '\0';
+    parser.parse(injected_cmd);
+    process_parsed();
+  }
+
+  // Copy the next command into place
+  for (
+    uint8_t dst = 0, src = i + !!c;           // dst, src
+    (injected_cmd[dst] = injected_cmd[src]);  // copy, exit if 0
+    dst++, src++                              // next dst, src
+  );
 
   return true;
 }
@@ -608,7 +667,7 @@ void Commands::process_parsed(const bool say_ok/*=true*/) {
 
   PRINTER_KEEPALIVE(InHandler);
 
-  #if ENABLED(FASTER_GCODE_EXECUTE) || ENABLED(ARDUINO_ARCH_SAM)
+  #if ENABLED(FASTER_GCODE_EXECUTE)
 
     // Handle a known G, M, or T
     switch (parser.command_letter) {
@@ -619,10 +678,7 @@ void Commands::process_parsed(const bool say_ok/*=true*/) {
                     middle  = 0,
                     end     = COUNT(GCode_Table) - 1;
 
-        if (code_num <= 1) { // Execute directly the most common Gcodes
-          EXECUTE_G0_G1(code_num);
-		  ok_to_send();
-        }
+        if (code_num <= 1) EXECUTE_G0_G1(code_num); // Execute directly the most common Gcodes
         else if (WITHIN(code_num, GCode_Table[start].code, GCode_Table[end].code)) {
           while (start <= end) {
             middle = (start + end) >> 1;
@@ -3981,6 +4037,9 @@ void Commands::process_parsed(const bool say_ok/*=true*/) {
         #endif
         #if ENABLED(CODE_M1000)
           case 1000: gcode_M1000(); break;
+        #endif
+        #if ENABLED(CODE_M1001)
+          case 1001: gcode_M1001(); break;
         #endif
         #if ENABLED(CODE_M9999)
           case 9999: gcode_M9999(); break;

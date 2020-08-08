@@ -74,7 +74,7 @@ void Cartesian_Mechanics::factory_parameters() {
   data.min_segment_time_us        = DEFAULT_MIN_SEGMENT_TIME;
   data.min_travel_feedrate_mm_s   = DEFAULT_MIN_TRAVEL_FEEDRATE;
 
-  #if ENABLED(JUNCTION_DEVIATION)
+  #if HAS_JUNCTION_DEVIATION
     data.junction_deviation_mm = float(JUNCTION_DEVIATION_MM);
   #else
     data.max_jerk.set(DEFAULT_XJERK, DEFAULT_YJERK, DEFAULT_ZJERK);
@@ -82,6 +82,12 @@ void Cartesian_Mechanics::factory_parameters() {
 
   #if ENABLED(WORKSPACE_OFFSETS)
     ZERO(data.home_offset);
+  #endif
+
+  #if HAS_XY_FREQUENCY_LIMIT
+    data.xy_freq_limit_hz         = XY_FREQUENCY_LIMIT;
+    data.xy_freq_min_speed_factor = (XY_FREQUENCY_MIN_PERCENT) * 0.01f;
+    refresh_frequency_limit();
   #endif
 
 }
@@ -399,6 +405,8 @@ void Cartesian_Mechanics::home(uint8_t axis_bits/*=0*/) {
  */
 void Cartesian_Mechanics::do_homing_move(const AxisEnum axis, const float distance, const feedrate_t fr_mm_s/*=0.0f*/) {
 
+  const feedrate_t real_fr_mm_s = fr_mm_s ? fr_mm_s : homing_feedrate_mm_s[axis];
+
   if (printer.debugFeature()) {
     DEBUG_MC(">>> do_homing_move(", axis_codes[axis]);
     DEBUG_MV(", ", distance);
@@ -406,7 +414,7 @@ void Cartesian_Mechanics::do_homing_move(const AxisEnum axis, const float distan
     if (fr_mm_s)
       DEBUG_VAL(fr_mm_s);
     else {
-      DEBUG_MV(" [", homing_feedrate_mm_s[axis]);
+      DEBUG_MV(" [", real_fr_mm_s);
       DEBUG_CHR(']');
     }
     DEBUG_CHR(')');
@@ -437,13 +445,13 @@ void Cartesian_Mechanics::do_homing_move(const AxisEnum axis, const float distan
     #endif
   }
 
-  abce_pos_t target = { planner.get_axis_position_mm(A_AXIS), planner.get_axis_position_mm(B_AXIS), planner.get_axis_position_mm(C_AXIS), planner.get_axis_position_mm(E_AXIS) };
+  abce_pos_t target = planner.get_axis_positions_mm();
   target[axis] = 0;
   planner.set_machine_position_mm(target);
   target[axis] = distance;
 
   // Set cartesian axes directly
-  planner.buffer_segment(target, fr_mm_s ? fr_mm_s : homing_feedrate_mm_s[axis], toolManager.extruder.active);
+  planner.buffer_segment(target, real_fr_mm_s, toolManager.extruder.active);
 
   planner.synchronize();
 
@@ -480,7 +488,7 @@ bool Cartesian_Mechanics::prepare_move_to_destination_mech_specific() {
 
   const float scaled_fr_mm_s = MMS_SCALED(feedrate_mm_s);
 
-  #if ENABLED(LASER) && ENABLED(LASER_FIRE_E)
+  #if HAS_LASER_FIRE_E
     if (position.e < destination.e && ((position.x != destination.x) || (position.y != destination.y)))
       laser.status = LASER_ON;
     else
@@ -489,7 +497,7 @@ bool Cartesian_Mechanics::prepare_move_to_destination_mech_specific() {
 
   #if HAS_MESH
     if (bedlevel.flag.leveling_active && bedlevel.leveling_active_at_z(destination.z)) {
-      #if ENABLED(AUTO_BED_LEVELING_UBL)
+      #if HAS_UBL
         ubl.line_to_destination_cartesian(scaled_fr_mm_s, toolManager.extruder.active);
         return true;
       #else
@@ -578,6 +586,7 @@ float Cartesian_Mechanics::axis_home_pos(const AxisEnum axis) {
     case X_AXIS: return x_home_pos(); break;
     case Y_AXIS: return y_home_pos(); break;
     case Z_AXIS: return z_home_pos(); break;
+    default: break;
   }
 }
 
@@ -590,7 +599,7 @@ float Cartesian_Mechanics::x_home_pos(const uint8_t extruder/*=0*/) {
   #if ENABLED(MANUAL_X_HOME_POS)
     return MANUAL_X_HOME_POS;
   #elif ENABLED(BED_CENTER_AT_0_0)
-     return ((mechanics.data.base_pos.max.x - mechanics.data.base_pos.min.x) * (mechanics.get_homedir(X_AXIS)) * 0.5);
+    return ((mechanics.data.base_pos.max.x - mechanics.data.base_pos.min.x) * (mechanics.get_homedir(X_AXIS)) * 0.5);
   #else
     return (mechanics.get_homedir(X_AXIS) < 0 ? mechanics.data.base_pos.min.x : mechanics.data.base_pos.max.x);
   #endif
@@ -642,12 +651,36 @@ bool Cartesian_Mechanics::position_is_reachable_by_probe(const float &rx, const 
       && WITHIN(ry, probe.min_y() - fslop, probe.max_y() + fslop);
 }
 
-// Report detail current position to host
-void Cartesian_Mechanics::report_position_detail() {
+// Report the real current position according to the steppers
+void Cartesian_Mechanics::report_real_position() {
 
+  get_cartesian_from_steppers();
+  xyze_pos_t npos = cartesian_position;
+  npos.e = planner.get_axis_position_mm(E_AXIS);
+
+  #if HAS_POSITION_MODIFIERS
+    planner.unapply_modifiers(npos, true);
+  #endif
+
+  report_logical_position(npos);
+  stepper.report_positions();
+
+}
+
+// Report the logical current position according to the most recent G-code command
+void Cartesian_Mechanics::report_position() {
+  report_logical_position(position);
+  stepper.report_positions();
+}
+
+// Report detail current position to host
+void Cartesian_Mechanics::report_detail_position() {
+
+  // Position as sent by G-code
   SERIAL_MSG("\nLogical:");
   report_xyz(position.asLogical());
 
+  // Cartesian position in native machine space
   SERIAL_MSG("Raw:    ");
   report_xyz(position);
 
@@ -681,9 +714,15 @@ void Cartesian_Mechanics::report_position_detail() {
   report_xyze(from_steppers);
 
   const xyze_float_t diff = from_steppers - leveled;
-  SERIAL_MSG("Differ: ");
+  SERIAL_MSG("Diff:   ");
   report_xyze(diff);
 
+}
+
+// Report the logical position for a given machine position
+void Cartesian_Mechanics::report_logical_position(const xyze_pos_t &pos) {
+  const xyze_pos_t lpos = pos.asLogical();
+  report_xyze(lpos);
 }
 
 #if ENABLED(DUAL_X_CARRIAGE)
@@ -792,6 +831,11 @@ void Cartesian_Mechanics::report_position_detail() {
       SERIAL_SMV(CFG, "  M201 T", (int)e);
       SERIAL_EMV(" E", VOLUMETRIC_UNIT(extruders[e]->data.max_acceleration_mm_per_s2));
     }
+    #if HAS_XY_FREQUENCY_LIMIT
+      SERIAL_LM(CFG, "XY Frequency Limit: F<freq> G<min%>");
+      SERIAL_SMV(CFG, "  M201 F", data.xy_freq_limit_hz);
+      SERIAL_EMV(" G", int(data.xy_freq_min_speed_factor * 100));
+    #endif
   }
 
   void Cartesian_Mechanics::print_M203() {
@@ -823,7 +867,7 @@ void Cartesian_Mechanics::report_position_detail() {
     SERIAL_MV(" S", LINEAR_UNIT(data.min_feedrate_mm_s), 3);
     SERIAL_EMV(" V", LINEAR_UNIT(data.min_travel_feedrate_mm_s), 3);
 
-    #if ENABLED(JUNCTION_DEVIATION)
+    #if HAS_JUNCTION_DEVIATION
       SERIAL_LM(CFG, "Junction Deviation: J<JUNCTION_DEVIATION_MM>");
       SERIAL_LMV(CFG, "  M205 J", data.junction_deviation_mm, 2);
     #else
@@ -1044,6 +1088,10 @@ void Cartesian_Mechanics::homeaxis(const AxisEnum axis) {
 
   #endif
 
+  #if HAS_TRINAMIC
+    tmcManager.go_to_homing_phase(axis, get_homing_bump_feedrate(axis));
+  #endif
+
   // For cartesian machines,
   // set the axis to its home position
   set_axis_is_at_home(axis);
@@ -1125,7 +1173,7 @@ void Cartesian_Mechanics::homeaxis(const AxisEnum axis) {
     // Disallow Z homing if X or Y are unknown
     if (!home_flag.XHomed || !home_flag.YHomed) {
       LCD_MESSAGEPGM(MSG_ERR_Z_HOMING);
-      SERIAL_LM(ECHO, MSG_HOST_ERR_Z_HOMING);
+      SERIAL_LM(ECHO, STR_ERR_Z_HOMING);
       return;
     }
 
@@ -1161,7 +1209,7 @@ void Cartesian_Mechanics::homeaxis(const AxisEnum axis) {
     }
     else {
       LCD_MESSAGEPGM(MSG_ZPROBE_OUT);
-      SERIAL_LM(ECHO, MSG_HOST_ZPROBE_OUT);
+      SERIAL_LM(ECHO, STR_ZPROBE_OUT);
     }
 
     if (printer.debugFeature()) DEBUG_EM("<<< home_z_safely");
@@ -1176,7 +1224,7 @@ void Cartesian_Mechanics::homeaxis(const AxisEnum axis) {
     // Disallow Z homing if X or Y are unknown
     if (!home_flag.XHomed || !home_flag.YHomed) {
       LCD_MESSAGEPGM(MSG_ERR_Z_HOMING);
-      SERIAL_LM(ECHO, MSG_HOST_ERR_Z_HOMING);
+      SERIAL_LM(ECHO, STR_ERR_Z_HOMING);
       return;
     }
 
@@ -1208,7 +1256,7 @@ void Cartesian_Mechanics::homeaxis(const AxisEnum axis) {
     }
     else {
       LCD_MESSAGEPGM(MSG_ZPROBE_OUT);
-      SERIAL_LM(ECHO, MSG_HOST_ZPROBE_OUT);
+      SERIAL_LM(ECHO, STR_ZPROBE_OUT);
     }
 
     if (printer.debugFeature()) DEBUG_EM("<<< DOUBLE_Z_HOMING");

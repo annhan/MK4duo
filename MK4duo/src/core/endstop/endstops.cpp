@@ -773,7 +773,7 @@ void Endstops::report_state() {
       char chrX = ' ', chrY = ' ', chrZ = ' ', chrP = ' ';
     #endif
 
-    SERIAL_SM(ECHO, MSG_HOST_ENDSTOPS_HIT);
+    SERIAL_SM(ECHO, STR_ENDSTOPS_HIT);
     if (TEST(hit_state, X_MIN) || TEST(hit_state, X_MAX)) {
       SERIAL_MV("X:", planner.triggered_position_mm(X_AXIS));
       #if HAS_LCD
@@ -922,12 +922,12 @@ void Endstops::update_software_endstops(const AxisEnum axis) {
 
     if (tempManager.heater.hotends > 1) {
       if (toolManager.extruder.active != toolManager.extruder.target) {
-        const float offs = nozzle.data.hotend_offset[axis][toolManager.target_hotend()] - nozzle.data.hotend_offset[axis][toolManager.active_hotend()];
+        const float offs = nozzle.data.hotend_offset[toolManager.target_hotend()][axis] - nozzle.data.hotend_offset[toolManager.active_hotend()][axis];
         soft_endstop.min[axis] += offs;
         soft_endstop.max[axis] += offs;
       }
       else {
-        const float offs = nozzle.data.hotend_offset[axis][toolManager.active_hotend()];
+        const float offs = nozzle.data.hotend_offset[toolManager.active_hotend()][axis];
         soft_endstop.min[axis] = mechanics.data.base_pos.min[axis] + offs;
         soft_endstop.max[axis] = mechanics.data.base_pos.max[axis] + offs;
       }

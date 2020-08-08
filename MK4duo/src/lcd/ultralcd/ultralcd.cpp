@@ -24,10 +24,6 @@
 
 #if HAS_SPI_LCD
 
-#if LCD_HAS_WAIT_FOR_MOVE
-  bool LcdUI::wait_for_move = false;
-#endif
-
 #if ENABLED(STATUS_MESSAGE_SCROLLING)
   uint8_t LcdUI::status_scroll_offset; // = 0
   constexpr uint8_t MAX_MESSAGE_LENGTH = MAX(LONG_FILENAME_LENGTH, MAX_LANG_CHARSIZE * 2 * (LCD_WIDTH));
@@ -35,8 +31,6 @@
   constexpr uint8_t MAX_MESSAGE_LENGTH = MAX_LANG_CHARSIZE * (LCD_WIDTH);
 #endif
 
-uint8_t LcdUI::alert_level  = 0,
-        LcdUI::lang         = 0;
 char    LcdUI::status_message[MAX_MESSAGE_LENGTH + 1];
 
 #if HAS_GRAPHICAL_LCD
@@ -50,14 +44,6 @@ char    LcdUI::status_message[MAX_MESSAGE_LENGTH + 1];
   #if HAS_SLOW_BUTTONS
     volatile uint8_t LcdUI::slow_buttons;
   #endif
-#endif
-
-#if HAS_SD_SUPPORT
-  uint8_t lcd_sd_status;
-#endif
-
-#if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS
-  bool LcdUI::defer_return_to_status;
 #endif
 
 uint8_t LcdUI::status_update_delay = 1; // First update one loop delayed
@@ -76,6 +62,11 @@ millis_l LcdUI::next_button_update_ms = 0;
 #if HAS_ENCODER_ACTION
   uint32_t LcdUI::encoderPosition;
   volatile int8_t encoderDiff; // Updated in update_buttons, added to encoderPosition every LCD update
+#endif
+
+/** Private Parameters */
+#if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS > 0
+  bool LcdUI::defer_return_to_status;
 #endif
 
 #if HAS_LCD_MENU
@@ -133,7 +124,7 @@ millis_l LcdUI::next_button_update_ms = 0;
     return click;
   }
 
-  #if ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION)
+  #if HAS_UBL || ENABLED(G26_MESH_VALIDATION)
 
     bool LcdUI::external_control; // = false
 
@@ -265,11 +256,8 @@ void LcdUI::init() {
 
   #endif // !HAS_DIGITAL_BUTTONS
 
-  #if HAS_SD_SUPPORT
-    #if PIN_EXISTS(SD_DETECT)
-      SET_INPUT_PULLUP(SD_DETECT_PIN);
-    #endif
-    lcd_sd_status = 2; // UNKNOWN
+  #if HAS_SD_SUPPORT && PIN_EXISTS(SD_DETECT)
+    SET_INPUT_PULLUP(SD_DETECT_PIN);
   #endif
 
   #if HAS_ENCODER_ACTION && HAS_SLOW_BUTTONS
@@ -287,7 +275,7 @@ void LcdUI::init() {
 bool LcdUI::get_blink(uint8_t moltiplicator/*=1*/) {
   static uint8_t blink = 0;
   static short_timer_t next_blink_timer(millis());
-  if (next_blink_timer.expired(1000 * moltiplicator)) blink ^= 0xFF;
+  if (next_blink_timer.expired(SECOND_TO_MILLIS(moltiplicator))) blink ^= 0xFF;
   return blink != 0;
 }
 
@@ -536,8 +524,6 @@ void LcdUI::quick_feedback(const bool clear_buttons/*=true*/) {
 
 #if HAS_LCD_MENU
 
-  extern bool no_reentry; // Flag to prevent recursion into menu handlers
-
   int8_t manual_move_axis = (int8_t)NO_AXIS;
   short_timer_t manual_move_timer;
 
@@ -644,12 +630,11 @@ bool LcdUI::detected() {
 void LcdUI::update() {
 
   static uint16_t max_display_update_time = 0;
-  static short_timer_t next_lcd_update_timer(millis());
   const millis_l ms = millis();
 
   #if HAS_LCD_MENU
 
-    #if LCD_TIMEOUT_TO_STATUS
+    #if LCD_TIMEOUT_TO_STATUS > 0
       static short_timer_t return_to_status_timer;
     #endif
 
@@ -663,11 +648,11 @@ void LcdUI::update() {
     // If the action button is pressed...
     static bool wait_for_unclick; // = 0
     if (!external_control && button_pressed()) {
-      if (!wait_for_unclick) {                                  // If not waiting for a debounce release:
-        wait_for_unclick = true;                                //  - Set debounce flag to ignore continous clicks
-        lcd_clicked = !printer.isWaitForUser() && !no_reentry;  //  - Keep the click if not waiting for a user-click
-        printer.setWaitForUser(false);                          //  - Any click clears wait for user
-        quick_feedback();                                       //  - Always make a click sound
+      if (!wait_for_unclick) {                    // If not waiting for a debounce release:
+        wait_for_unclick = true;                  //  - Set debounce flag to ignore continous clicks
+        lcd_clicked = !printer.isWaitForUser();   //  - Keep the click if not waiting for a user-click
+        printer.setWaitForUser(false);            //  - Any click clears wait for user
+        quick_feedback();                         //  - Always make a click sound
       }
     }
     else wait_for_unclick = false;
@@ -680,40 +665,6 @@ void LcdUI::update() {
     #endif
 
   #endif // HAS_LCD_MENU
-
-  #if HAS_SD_SUPPORT
-
-    const uint8_t sd_status = (uint8_t)IS_SD_INSERTED();
-    if (sd_status != lcd_sd_status && detected()) {
-
-      uint8_t old_sd_status = lcd_sd_status; // prevent re-entry to this block!
-      lcd_sd_status = sd_status;
-
-      if (sd_status) {
-        HAL::delayMilliseconds(500);  // Some boards need a delay to get settled
-        card.mount();
-        if (old_sd_status == 2)
-          card.beginautostart();  // Initial boot
-        else
-          set_status_P(GET_TEXT(MSG_SD_INSERTED));
-      }
-      #if PIN_EXISTS(SD_DETECT)
-        else {
-          card.unmount();
-          if (old_sd_status != 2) {
-            set_status_P(GET_TEXT(MSG_SD_REMOVED));
-            if (!on_status_screen()) return_to_status();
-          }
-        }
-        init_lcd(); // May revive the LCD if static electricity killed it
-      #endif
-
-      refresh();
-      next_lcd_update_timer.start();
-
-    }
-
-  #endif // HAS_SD_SUPPORT
 
   if (next_lcd_update_timer.expired(LCD_UPDATE_INTERVAL)
     #if HAS_GRAPHICAL_LCD
@@ -734,7 +685,7 @@ void LcdUI::update() {
       #if ENABLED(REPRAPWORLD_KEYPAD)
 
         if (handle_keypad()) {
-          #if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS
+          #if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS > 0
             return_to_status_timer.start();
           #endif
         }
@@ -782,7 +733,7 @@ void LcdUI::update() {
           encoderPosition += (encoderDiff * encoderMultiplier) / (ENCODER_PULSES_PER_STEP);
           encoderDiff = 0;
         }
-        #if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS
+        #if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS > 0
           return_to_status_timer.start();
         #endif
         refresh(LCDVIEW_REDRAW_NOW);
@@ -812,7 +763,7 @@ void LcdUI::update() {
           status_update_delay = 12;
         }
         refresh(LCDVIEW_REDRAW_NOW);
-        #if LCD_TIMEOUT_TO_STATUS
+        #if LCD_TIMEOUT_TO_STATUS > 0
           return_to_status_timer.start();
         #endif
       }
@@ -874,7 +825,7 @@ void LcdUI::update() {
       NOLESS(max_display_update_time, millis() - ms);
     }
 
-    #if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS
+    #if HAS_LCD_MENU && LCD_TIMEOUT_TO_STATUS > 0
       // Return to Status Screen after a timeout
       if (on_status_screen() || defer_return_to_status)
         return_to_status_timer.start();
@@ -1097,7 +1048,7 @@ void LcdUI::update() {
           case encrot3: ENCODER_SPIN(encrot2, encrot0); break;
         }
         if (external_control) {
-          #if ENABLED(AUTO_BED_LEVELING_UBL)
+          #if HAS_UBL
             ubl.encoder_diff = encoderDiff;   // Make encoder rotation available to UBL G29 mesh editing.
           #endif
           encoderDiff = 0;                    // Hide the encoder event from the current screen handler.
@@ -1177,8 +1128,10 @@ void LcdUI::finish_status(const bool persist) {
 
 bool LcdUI::has_status() { return (status_message[0] != '\0'); }
 
-void LcdUI::set_status(const char* const message, const bool persist/*=false*/) {
+void LcdUI::set_status(const char * const message, const bool persist/*=false*/) {
   if (alert_level) return;
+
+  host_action.action_notify(message);
 
   // Here we have a problem. The message is encoded in UTF8, so
   // arbitrarily cutting it will be a problem. We MUST be sure
@@ -1219,9 +1172,10 @@ void LcdUI::set_status_P(PGM_P const message, int8_t level/*=0*/) {
   if (level < alert_level) return;
   alert_level = level;
 
-  // Here we have a problem. The message is encoded in UTF8, so
-  // arbitrarily cutting it will be a problem. We MUST be sure
-  // that there is no cutting in the middle of a multibyte character!
+  host_action.action_notify_P(message);
+
+  // Since the message is encoded in UTF8 it must
+  // only be cut on a character boundary.
 
   // Get a pointer to the null terminator
   PGM_P pend = message + strlen_P(message);
@@ -1297,7 +1251,8 @@ void LcdUI::reset_status() {
 void LcdUI::pause_print() {
 
   #if HAS_LCD_MENU
-    synchronize(GET_TEXT(MSG_PAUSE_PRINT));
+    synchronize(GET_TEXT(MSG_PAUSING));
+    defer_status_screen();
   #endif
 
   host_action.prompt_open(PROMPT_PAUSE_RESUME, PSTR("LCD Pause"), PSTR("Resume"));
@@ -1305,8 +1260,8 @@ void LcdUI::pause_print() {
   set_status_P(print_paused);
 
   #if ENABLED(PARK_HEAD_ON_PAUSE)
-    lcd_pause_show_message(PAUSE_MESSAGE_PAUSING, PAUSE_MODE_PAUSE_PRINT);  // Show message immediately to let user know about pause in progress
-    commands.inject_P(PSTR("M25\nM24"));
+    lcd_pause_show_message(PAUSE_MESSAGE_PARKING, PAUSE_MODE_PAUSE_PRINT);  // Show message immediately to let user know about pause in progress
+    commands.inject_P(PSTR("M25 P\nM24"));
   #elif HAS_SD_SUPPORT
     commands.inject_P(PSTR("M25"));
   #else
@@ -1335,7 +1290,7 @@ void LcdUI::stop_print() {
     if (IS_SD_PRINTING()) card.setAbortSDprinting(true);
   #endif
   host_action.cancel();
-  host_action.prompt_open(PROMPT_INFO, PSTR("LCD Aborted"), PSTR("Dismiss"));
+  host_action.prompt_open(PROMPT_INFO, PSTR("LCD Aborted"), DISMISS_BTN);
   print_job_counter.stop();
   set_status_P(GET_TEXT(MSG_PRINT_ABORTED));
   #if HAS_LCD_MENU

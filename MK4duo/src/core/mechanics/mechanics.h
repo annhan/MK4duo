@@ -83,8 +83,8 @@ struct generic_data_t {
 
   uint32_t      min_segment_time_us;
 
-  #if ENABLED(JUNCTION_DEVIATION)
-    float     junction_deviation_mm;
+  #if HAS_JUNCTION_DEVIATION
+    float       junction_deviation_mm;
   #endif
 
   #if HAS_CLASSIC_JERK
@@ -92,7 +92,12 @@ struct generic_data_t {
   #endif
 
   #if ENABLED(WORKSPACE_OFFSETS)
-    xyz_pos_t home_offset;
+    xyz_pos_t   home_offset;
+  #endif
+
+  #if HAS_XY_FREQUENCY_LIMIT
+    int8_t      xy_freq_limit_hz;
+    float       xy_freq_min_speed_factor;
   #endif
 
 };
@@ -196,7 +201,11 @@ class Mechanics {
        * Workspace planes only apply to G2/G3 moves
        * (and "canned cycles" - not a current feature)
        */
-      static WorkspacePlaneEnum workspace_plane = PLANE_XY;
+      static WorkspacePlaneEnum workspace_plane;
+    #endif
+
+    #if HAS_XY_FREQUENCY_LIMIT
+      static int32_t xy_freq_min_interval_us;
     #endif
 
   private: /** Private Parameters */
@@ -290,12 +299,7 @@ class Mechanics {
     static void sync_plan_position();
     static void sync_plan_position_e();
 
-    /**
-     * Report position to host
-     */
-    static void report_position();
-
-    FORCE_INLINE static void report_xyz(const xyze_pos_t &pos) { report_xyze(pos, 3); }
+    static void unscaled_e_move(const float &length, const feedrate_t &fr_mm_s);
 
     static uint8_t axis_need_homing(uint8_t axis_bits=0x07);
     static bool axis_unhomed_error(uint8_t axis_bits=0x07);
@@ -333,6 +337,20 @@ class Mechanics {
       static void recalculate_max_e_jerk();
     #endif
 
+    #if HAS_XY_FREQUENCY_LIMIT
+      static inline void refresh_frequency_limit() {
+        if (data.xy_freq_limit_hz)
+          xy_freq_min_interval_us = LROUND(1000000.0f / data.xy_freq_limit_hz);
+      }
+      static inline void set_min_speed_factor_u8(const uint8_t v255) {
+        data.xy_freq_min_speed_factor = float(ui8topercent(v255)) / 100;
+      }
+      static inline void set_frequency_limit(const uint8_t hz) {
+        data.xy_freq_limit_hz = constrain(hz, 0, 100);
+        refresh_frequency_limit();
+      }
+    #endif
+
   protected: /** Protected Function */
 
     /**
@@ -343,15 +361,50 @@ class Mechanics {
       static void stop_sensorless_homing_per_axis(const AxisEnum axis, sensorless_flag_t enable_stealth);
     #endif
 
-    static void report_xyz(const xyz_pos_t &pos, const uint8_t precision=3);
-    static void report_xyze(const xyze_pos_t &pos, const uint8_t n=4, const uint8_t precision=3);
+    /**
+     * Report position to host
+     */
+    static void report_xyze(const xyze_pos_t &pos, const uint8_t n=XYZE);
+    static void report_xyz(const xyz_pos_t &pos);
+    FORCE_INLINE static void report_xyz(const xyze_pos_t &pos) { report_xyze(pos, XYZ); }
 
     /**
      * Homing bump feedrate (mm/s)
      */
-    static float get_homing_bump_feedrate(const AxisEnum axis);
+    static feedrate_t get_homing_bump_feedrate(const AxisEnum axis);
 
 };
+
+#if ENABLED(WORKSPACE_OFFSETS)
+
+  #define NATIVE_TO_LOGICAL(POS, AXIS)          ((POS) + Mechanics::workspace_offset[AXIS])
+  #define LOGICAL_TO_NATIVE(POS, AXIS)          ((POS) - Mechanics::workspace_offset[AXIS])
+  FORCE_INLINE void toLogical(xy_pos_t &raw)    { raw += Mechanics::workspace_offset; }
+  FORCE_INLINE void toLogical(xyz_pos_t &raw)   { raw += Mechanics::workspace_offset; }
+  FORCE_INLINE void toLogical(xyze_pos_t &raw)  { raw += Mechanics::workspace_offset; }
+  FORCE_INLINE void toNative(xy_pos_t &raw)     { raw -= Mechanics::workspace_offset; }
+  FORCE_INLINE void toNative(xyz_pos_t &raw)    { raw -= Mechanics::workspace_offset; }
+  FORCE_INLINE void toNative(xyze_pos_t &raw)   { raw -= Mechanics::workspace_offset; }
+
+#else
+
+  #define NATIVE_TO_LOGICAL(POS, AXIS)          (POS)
+  #define LOGICAL_TO_NATIVE(POS, AXIS)          (POS)
+  FORCE_INLINE void toLogical(xy_pos_t &raw)    { UNUSED(raw); }
+  FORCE_INLINE void toLogical(xyz_pos_t &raw)   { UNUSED(raw); }
+  FORCE_INLINE void toLogical(xyze_pos_t &raw)  { UNUSED(raw); }
+  FORCE_INLINE void toNative(xy_pos_t &raw)     { UNUSED(raw); }
+  FORCE_INLINE void toNative(xyz_pos_t &raw)    { UNUSED(raw); }
+  FORCE_INLINE void toNative(xyze_pos_t &raw)   { UNUSED(raw); }
+
+#endif
+
+#define LOGICAL_X_POSITION(POS) NATIVE_TO_LOGICAL(POS, X_AXIS)
+#define LOGICAL_Y_POSITION(POS) NATIVE_TO_LOGICAL(POS, Y_AXIS)
+#define LOGICAL_Z_POSITION(POS) NATIVE_TO_LOGICAL(POS, Z_AXIS)
+#define NATIVE_X_POSITION(POS)  LOGICAL_TO_NATIVE(POS, X_AXIS)
+#define NATIVE_Y_POSITION(POS)  LOGICAL_TO_NATIVE(POS, Y_AXIS)
+#define NATIVE_Z_POSITION(POS)  LOGICAL_TO_NATIVE(POS, Z_AXIS)
 
 #if MECH(CARTESIAN)
   #include "cartesian_mechanics.h"

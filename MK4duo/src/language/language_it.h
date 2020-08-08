@@ -166,8 +166,8 @@ namespace language_it {
   FSTRINGVALUE(MSG_UBL_STORAGE_SLOT                 , _UxGT("Slot di memoria"));
   FSTRINGVALUE(MSG_UBL_LOAD_MESH                    , _UxGT("Carica Mesh Piatto"));
   FSTRINGVALUE(MSG_UBL_SAVE_MESH                    , _UxGT("Salva Mesh Piatto"));
-  FSTRINGVALUE(MSG_MESH_LOADED                      , _UxGT("M117 Mesh %i caricata"));
-  FSTRINGVALUE(MSG_MESH_SAVED                       , _UxGT("M117 Mesh %i salvata"));
+  FSTRINGVALUE(MSG_MESH_LOADED                      , _UxGT("Mesh %i caricata"));
+  FSTRINGVALUE(MSG_MESH_SAVED                       , _UxGT("Mesh %i salvata"));
   FSTRINGVALUE(MSG_UBL_NO_STORAGE                   , _UxGT("Nessuna memoria"));
   FSTRINGVALUE(MSG_UBL_SAVE_ERROR                   , _UxGT("Err: Salvataggio UBL"));
   FSTRINGVALUE(MSG_UBL_RESTORE_ERROR                , _UxGT("Err: Ripristino UBL"));
@@ -263,6 +263,8 @@ namespace language_it {
   FSTRINGVALUE(MSG_AMAX_E                           , _UxGT("Amax ") LCD_STR_E);
   FSTRINGVALUE(MSG_A_RETRACT                        , _UxGT("A-Ritrazione E"));
   FSTRINGVALUE(MSG_A_TRAVEL                         , _UxGT("A-Spostamento"));
+  FSTRINGVALUE(MSG_XY_FREQUENCY_LIMIT               , _UxGT("Frequenza max"));
+  FSTRINGVALUE(MSG_XY_FREQUENCY_FEEDRATE            , _UxGT("Feed min"));
   FSTRINGVALUE(MSG_STEPS_PER_MM                     , _UxGT("Passi/mm"));
   FSTRINGVALUE(MSG_A_STEPS                          , _UxGT("passi/mm ") LCD_STR_A);
   FSTRINGVALUE(MSG_B_STEPS                          , _UxGT("passi/mm ") LCD_STR_B);
@@ -295,6 +297,7 @@ namespace language_it {
   FSTRINGVALUE(MSG_BUTTON_RESET                     , _UxGT("Resetta"));
   FSTRINGVALUE(MSG_BUTTON_CANCEL                    , _UxGT("Annulla"));
   FSTRINGVALUE(MSG_BUTTON_DONE                      , _UxGT("Fatto"));
+  FSTRINGVALUE(MSG_PAUSING                          , _UxGT("Pausing..."));
   FSTRINGVALUE(MSG_PAUSE_PRINT                      , _UxGT("Pausa stampa"));
   FSTRINGVALUE(MSG_RESUME_PRINT                     , _UxGT("Riprendi stampa"));
   FSTRINGVALUE(MSG_STOP_PRINT                       , _UxGT("Arresta stampa"));
@@ -305,9 +308,9 @@ namespace language_it {
   FSTRINGVALUE(MSG_USERWAIT                         , _UxGT("Premi tasto.."));
   FSTRINGVALUE(MSG_PRINT_PAUSED                     , _UxGT("Stampa sospesa"));
   FSTRINGVALUE(MSG_PRINTING                         , _UxGT("Stampa..."));
-  FSTRINGVALUE(MSG_STOPPING                         , _UxGT("Stampa finita"));
   FSTRINGVALUE(MSG_RESUMING                         , _UxGT("Ripresa Stampa"));
   FSTRINGVALUE(MSG_PRINT_ABORTED                    , _UxGT("Stampa annullata"));
+  FSTRINGVALUE(MSG_PRINT_DONE                       , _UxGT("Stampa finita"));
   FSTRINGVALUE(MSG_NO_MOVE                          , _UxGT("Nessun Movimento"));
   FSTRINGVALUE(MSG_KILLED                           , _UxGT("UCCISO. "));
   FSTRINGVALUE(MSG_STOPPED                          , _UxGT("ARRESTATO. "));
@@ -506,7 +509,7 @@ namespace language_it {
   //                                                  ...o fino a 2 linee su un display a 3 righe.
   #if LCD_HEIGHT >= 4
     FSTRINGVALUE(MSG_ADVANCED_PAUSE_WAITING         , _UxGT(MSG_3_LINE("Premi per", "riprendere", "la stampa")));
-    FSTRINGVALUE(MSG_PAUSE_PRINT_INIT               , _UxGT(MSG_1_LINE("Parcheggiando...")));
+    FSTRINGVALUE(MSG_PAUSE_PRINT_PARKING            , _UxGT(MSG_1_LINE("Parcheggiando...")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_INIT           , _UxGT(MSG_3_LINE("Attendere avvio", "del cambio", "di filamento")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_INSERT         , _UxGT(MSG_3_LINE("Inserisci il", "filamento e premi", "per continuare")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_HEAT           , _UxGT(MSG_2_LINE("Premi per", "riscaldare ugello")));

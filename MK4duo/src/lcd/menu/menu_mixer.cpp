@@ -47,7 +47,8 @@
     }
     if (lcdui.should_draw()) {
       char tmp[21];
-      sprintf_P(tmp, PSTR(MSG_START_Z ": %4d.%d mm"), int(mixer.gradient.start_z), int(mixer.gradient.start_z * 10) % 10);
+      strcpy_P(tmp, GET_TEXT(MSG_START_Z));
+      sprintf_P(tmp + strlen(tmp), PSTR(": %4d.%d mm"), int(mixer.gradient.start_z), int(mixer.gradient.start_z * 10) % 10);
       SETCURSOR(2, (LCD_HEIGHT - 1) / 2);
       LCDPRINT(tmp);
     }
@@ -72,7 +73,8 @@
 
     if (lcdui.should_draw()) {
       char tmp[21];
-      sprintf_P(tmp, PSTR(MSG_END_Z ": %4d.%d mm"), int(mixer.gradient.end_z), int(mixer.gradient.end_z * 10) % 10);
+      strcpy_P(tmp, GET_TEXT(MSG_END_Z));
+      sprintf_P(tmp + strlen(tmp), PSTR(": %4d.%d mm"), int(mixer.gradient.end_z), int(mixer.gradient.end_z * 10) % 10);
       SETCURSOR(2, (LCD_HEIGHT - 1) / 2);
       LCDPRINT(tmp);
     }
@@ -94,13 +96,13 @@
 
     char tmp[10];
 
-    SUBMENU(MSG_START_Z ":", lcd_mixer_gradient_z_start_edit);
+    SUBMENU(MSG_START_Z, lcd_mixer_gradient_z_start_edit);
     MENU_ITEM_ADDON_START(9);
       sprintf_P(tmp, PSTR("%4d.%d mm"), int(mixer.gradient.start_z), int(mixer.gradient.start_z * 10) % 10);
       LCDPRINT(tmp);
     MENU_ITEM_ADDON_END();
 
-    SUBMENU(MSG_END_Z ":", lcd_mixer_gradient_z_end_edit);
+    SUBMENU(MSG_END_Z, lcd_mixer_gradient_z_end_edit);
     MENU_ITEM_ADDON_START(9);
       sprintf_P(tmp, PSTR("%4d.%d mm"), int(mixer.gradient.end_z), int(mixer.gradient.end_z * 10) % 10);
       LCDPRINT(tmp);
@@ -152,7 +154,7 @@ void lcd_mixer_mix_edit() {
     START_MENU();
     BACK_ITEM(MSG_MIXER);
     LOOP_DRV_MIX() 
-      EDIT_ITEM_FAST_N(float52, d, MSG_MIX_COMPONENT, &mixer.collector[d], 0, 10);
+      EDIT_ITEM_FAST_N(float42_52, d, MSG_MIX_COMPONENT, &mixer.collector[d], 0, 10);
 
     ACTION_ITEM(MSG_CYCLE_MIX, _lcd_mixer_cycle_mix);
     ACTION_ITEM(MSG_COMMIT_VTOOL, _lcd_mixer_commit_vtool);

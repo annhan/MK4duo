@@ -200,11 +200,11 @@ void HAL::resetHardware() { resetFunc(); }
 
 void HAL::showStartReason() {
   const uint8_t mcu = MCUSR;
-  if (mcu &  1) SERIAL_EM(MSG_HOST_POWERUP);
-  if (mcu &  2) SERIAL_EM(MSG_HOST_EXTERNAL_RESET);
-  if (mcu &  4) SERIAL_EM(MSG_HOST_BROWNOUT_RESET);
-  if (mcu &  8) SERIAL_EM(MSG_HOST_WATCHDOG_RESET);
-  if (mcu & 32) SERIAL_EM(MSG_HOST_SOFTWARE_RESET);
+  if (mcu &  1) SERIAL_EM(STR_POWERUP);
+  if (mcu &  2) SERIAL_EM(STR_EXTERNAL_RESET);
+  if (mcu &  4) SERIAL_EM(STR_BROWNOUT_RESET);
+  if (mcu &  8) SERIAL_EM(STR_WATCHDOG_RESET);
+  if (mcu & 32) SERIAL_EM(STR_SOFTWARE_RESET);
   MCUSR = 0;
 }
 
@@ -348,11 +348,11 @@ void HAL::Tick() {
   // Fans set output PWM
   fanManager.set_output_pwm();
 
-  // Event 100 ms
+  // Event every 100 ms
   if (cycle_100_timer.expired(100)) tempManager.spin();
 
-  // Event 1.0 Second
-  if (cycle_1s_timer.expired(1000)) printer.check_periodical_actions();
+  // Event every second
+  if (cycle_1s_timer.expired(SECOND_TO_MILLIS(1))) printer.check_periodical_actions();
 
   if ((ADCSRA & _BV(ADSC)) == 0) {  // Conversion finished?
     channel = pgm_read_byte(&AnalogInputChannels[adcSamplePos]);

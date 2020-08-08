@@ -160,7 +160,7 @@
  *  - TMC5161                                                               *
  *  - TMC5161_STANDALONE                                                    *
  *                                                                          *
- * See Configuration_Motor_Driver.h for configuration Motor Driver          *
+ * See Configuration_Driver.h for configuration option for Driver           *
  *                                                                          *
  ****************************************************************************/
 #define  X_DRIVER_TYPE  TB6600
@@ -513,11 +513,11 @@
  ***********************************************************************/
 //#define IDLE_OOZING_PREVENT
 #define IDLE_OOZING_MINTEMP           190
-#define IDLE_OOZING_FEEDRATE          50    //default feedrate for retracting (mm/s)
+#define IDLE_OOZING_FEEDRATE          50    // default feedrate for retracting (mm/s)
 #define IDLE_OOZING_SECONDS           5
-#define IDLE_OOZING_LENGTH            15    //default retract length (positive mm)
-#define IDLE_OOZING_RECOVER_LENGTH    0     //default additional recover length (mm, added to retract length when recovering)
-#define IDLE_OOZING_RECOVER_FEEDRATE  50    //default feedrate for recovering from retraction (mm/s)
+#define IDLE_OOZING_LENGTH            15    // default retract length (positive mm)
+#define IDLE_OOZING_RECOVER_LENGTH    0     // default additional recover length (mm, added to retract length when recovering)
+#define IDLE_OOZING_RECOVER_FEEDRATE  50    // default feedrate for recovering from retraction (mm/s)
 /***********************************************************************/
 
 
@@ -583,6 +583,7 @@
  *                                                                        *
  *  - G92                                                                 *
  *  - M206 and M428 are enabled.                                          *
+ *                                                                        *
  **************************************************************************/
 //#define WORKSPACE_OFFSETS
 /**************************************************************************/
@@ -1394,8 +1395,8 @@
 // Note: This is always disabled for ULTIPANEL (except ELB_FULL_GRAPHIC_CONTROLLER).
 //#define SD_DETECT_INVERTED
 
-#define SD_FINISHED_STEPPERRELEASE true           // if sd support and the file is finished: disable steppers?
-#define SD_FINISHED_RELEASECOMMAND "M84 X Y Z E"  // You might want to keep the z enabled so your bed stays in place.
+#define SD_FINISHED_STEPPERRELEASE true   // if sd support and the file is finished: disable steppers?
+#define SD_FINISHED_RELEASECOMMAND "M84"  // Use "M84XYE" to keep Z enabled so your bed stays in place
 
 //#define MENU_ADDAUTOSTART
 
@@ -1684,6 +1685,11 @@
 
 // (mm) Distance from real junction edge
 #define JUNCTION_DEVIATION_MM 0.02
+
+// Disable this option to save 120 bytes of PROGMEM,
+// but incur increased computation and a reduction
+// in accuracy.
+#define JUNCTION_DEVIATION_USE_TABLE
 /**************************************************************************/
 
 

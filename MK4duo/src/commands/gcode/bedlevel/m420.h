@@ -50,23 +50,23 @@
  */
 inline void gcode_M420() {
 
-  const bool  seen_S = parser.seen('S'),
+  const bool  seen_S    = parser.seen('S'),
               to_enable = seen_S ? parser.value_bool() : bedlevel.flag.leveling_active;
+
+  const xyz_pos_t oldpos = mechanics.position;
 
   // If disabling leveling do it right away
   // (Don't disable for just M420 or M420 V)
   if (seen_S && !to_enable) bedlevel.set_bed_leveling_enabled(false);
 
-  const xyz_pos_t oldpos = mechanics.position;
-
-  #if ENABLED(AUTO_BED_LEVELING_UBL)
+  #if HAS_UBL
 
     // L to load a mesh from the EEPROM
     if (parser.seen('L')) {
 
       bedlevel.set_bed_leveling_enabled(false);
 
-      #if ENABLED(EEPROM_SETTINGS)
+      #if HAS_EEPROM
 
         const int8_t storage_slot = parser.has_value() ? parser.value_int() : ubl.storage_slot;
         const int16_t a = eeprom.calc_num_meshes();
@@ -112,7 +112,7 @@ inline void gcode_M420() {
       // Subtract the given value or the mean from all mesh values
       if (parser.seen('C')) {
         const float cval = parser.value_float();
-        #if ENABLED(AUTO_BED_LEVELING_UBL)
+        #if HAS_UBL
 
           bedlevel.set_bed_leveling_enabled(false);
           ubl.adjust_mesh_to_mean(true, cval);
@@ -195,7 +195,7 @@ EXIT_M420:
 
   // Error if leveling failed to enable or reenable
   if (to_enable && !bedlevel.flag.leveling_active)
-    SERIAL_LM(ER, MSG_HOST_ERR_M420_FAILED);
+    SERIAL_LM(ER, STR_ERR_M420_FAILED);
 
   SERIAL_STR(ECHO);
   SERIAL_EONOFF("Bed Leveling ", bedlevel.flag.leveling_active);
@@ -205,7 +205,7 @@ EXIT_M420:
     if (bedlevel.z_fade_height > 0.0)
       SERIAL_EV(bedlevel.z_fade_height);
     else
-      SERIAL_EM(MSG_HOST_OFF);
+      SERIAL_EM(STR_OFF);
   #endif
 
   // Report change in position

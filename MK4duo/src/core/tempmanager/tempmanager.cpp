@@ -185,38 +185,44 @@ void TempManager::change_number_heater(const HeatertypeEnum type, const uint8_t 
       heater.hotends = h;
     }
   }
-  else if (type == IS_BED) {
-    if (heater.beds < h) {
-      heater.beds = h;
-      create_object();
-    }
-    else if (heater.beds > h) {
-      for (uint8_t hh = h; hh < MAX_BED; hh++) {
-        if (beds[hh]) {
-          delete (beds[hh]);
-          beds[hh] = nullptr;
-          SERIAL_LMV(ECHO, "Delete Bed", int(hh));
-        }
+
+  #if HAS_BEDS
+    else if (type == IS_BED) {
+      if (heater.beds < h) {
+        heater.beds = h;
+        create_object();
       }
-      heater.beds = h;
-    }
-  }
-  else if (type == IS_CHAMBER) {
-    if (heater.chambers < h) {
-      heater.chambers = h;
-      create_object();
-    }
-    else if (heater.chambers > h) {
-      for (uint8_t hh = h; hh < MAX_CHAMBER; hh++) {
-        if (chambers[hh]) {
-          delete (chambers[hh]);
-          chambers[hh] = nullptr;
-          SERIAL_LMV(ECHO, "Delete Chamber", int(hh));
+      else if (heater.beds > h) {
+        for (uint8_t hh = h; hh < MAX_BED; hh++) {
+          if (beds[hh]) {
+            delete (beds[hh]);
+            beds[hh] = nullptr;
+            SERIAL_LMV(ECHO, "Delete Bed", int(hh));
+          }
         }
+        heater.beds = h;
       }
-      heater.chambers = h;
     }
-  }
+  #endif
+
+  #if HAS_CHAMBERS
+    else if (type == IS_CHAMBER) {
+      if (heater.chambers < h) {
+        heater.chambers = h;
+        create_object();
+      }
+      else if (heater.chambers > h) {
+        for (uint8_t hh = h; hh < MAX_CHAMBER; hh++) {
+          if (chambers[hh]) {
+            delete (chambers[hh]);
+            chambers[hh] = nullptr;
+            SERIAL_LMV(ECHO, "Delete Chamber", int(hh));
+          }
+        }
+        heater.chambers = h;
+      }
+    }
+  #endif
 
 }
 
@@ -572,28 +578,28 @@ void TempManager::report_temperatures(const bool showRaw/*=false*/) {
   #if HAS_HOTENDS
     if (heater.hotends > 0) {
       print_heater_state(hotends[toolManager.active_hotend()], false, showRaw);
-      SERIAL_MV(MSG_HOST_AT ":", hotends[toolManager.active_hotend()]->pwm_value);
+      SERIAL_MV(STR_AT ":", hotends[toolManager.active_hotend()]->pwm_value);
     }
   #endif
 
   #if HAS_BEDS
     if (heater.beds > 0) {
       print_heater_state(beds[0], false, showRaw);
-      SERIAL_MV(MSG_HOST_BAT ":", beds[0]->pwm_value);
+      SERIAL_MV(STR_BAT ":", beds[0]->pwm_value);
     }
   #endif
 
   #if HAS_CHAMBERS
     if (heater.chambers > 0) {
       print_heater_state(chambers[0], false, showRaw);
-      SERIAL_MV(MSG_HOST_CAT ":", chambers[0]->pwm_value);
+      SERIAL_MV(STR_CAT ":", chambers[0]->pwm_value);
     }
   #endif
 
   #if HAS_COOLERS
     if (heater.coolers > 0) {
       print_heater_state(coolers[0], false, showRaw);
-      SERIAL_MV(MSG_HOST_CAT ":", coolers[0]->pwm_value);
+      SERIAL_MV(STR_CAT ":", coolers[0]->pwm_value);
     }
   #endif
 
@@ -601,7 +607,7 @@ void TempManager::report_temperatures(const bool showRaw/*=false*/) {
     if (heater.hotends > 1) {
       LOOP_HOTEND() {
         print_heater_state(hotends[h], true, showRaw);
-        SERIAL_MV(MSG_HOST_AT, int(h));
+        SERIAL_MV(STR_AT, int(h));
         SERIAL_CHR(':');
         SERIAL_VAL(hotends[h]->pwm_value);
       }
@@ -612,7 +618,7 @@ void TempManager::report_temperatures(const bool showRaw/*=false*/) {
     if (heater.beds > 1) {
       LOOP_BED() {
         print_heater_state(beds[h], true, showRaw);
-        SERIAL_MV(MSG_HOST_BAT, int(h));
+        SERIAL_MV(STR_BAT, int(h));
         SERIAL_CHR(':');
         SERIAL_VAL(beds[h]->pwm_value);
       }
@@ -623,7 +629,7 @@ void TempManager::report_temperatures(const bool showRaw/*=false*/) {
     if (heater.chambers > 1) {
       LOOP_CHAMBER() {
         print_heater_state(chambers[h], true, showRaw);
-        SERIAL_MV(MSG_HOST_CAT, int(h));
+        SERIAL_MV(STR_CAT, int(h));
         SERIAL_CHR(':');
         SERIAL_VAL(chambers[h]->pwm_value);
       }

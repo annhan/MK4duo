@@ -28,54 +28,42 @@
 
 #if HAS_MULTI_MODE
 
-  #define CODE_M3
-  #define CODE_M4
+#define CODE_M3
+#define CODE_M4
 
-  /**
-   * M3: Setting laser beam or fire laser - CNC clockwise speed
-   * M4: Turn on laser beam or CNC counter clockwise speed
-   *      S - Laser intensity or CNC speed
-   *      L - Laser Duration
-   *      P - PPM
-   *      D - Diagnostic
-   *      B - Set mode
-   */
-  void gcode_M3_M4(bool clockwise) {
-    planner.synchronize();
+/**
+ * M3: Setting laser beam or fire laser - CNC clockwise speed
+ * M4: Turn on laser beam or CNC counter clockwise speed
+ *      S - Laser intensity or CNC speed
+ *      L - Laser Duration
+ *      P - PPM
+ *      D - Diagnostic
+ *      B - Set mode
+ */
+void gcode_M3_M4(bool clockwise) {
+  planner.synchronize();
 
-    switch (printer.mode) {
+  switch (printer.mode) {
 
-      #if ENABLED(LASER) && ENABLED(LASER_FIRE_SPINDLE)
-        case PRINTER_MODE_LASER: {
-          if (printer.isRunning()) {
-            #if ENABLED(INTENSITY_IN_BYTE)
-              if (parser.seenval('S')) laser.intensity = parser.value_byte();
-            #else
-              if (parser.seenval('S')) laser.intensity = 255 * parser.value_float() * 0.01;
-            #endif
-            if (parser.seenval('L')) laser.duration = parser.value_ulong();
-            if (parser.seenval('P')) laser.ppm = parser.value_float();
-            if (parser.seenval('D')) laser.diagnostics = parser.value_bool();
-            if (parser.seenval('B')) laser.set_mode(parser.value_int());
-          }
-          laser.status = LASER_ON;
-        }
+    #if HAS_LASER_SPINDLE
+      case PRINTER_MODE_LASER:
+        if (printer.isRunning()) laser.set_power();
         break;
-      #endif
+    #endif
 
-      #if ENABLED(CNCROUTER)
-        case PRINTER_MODE_CNC:
-          if (parser.seenval('S')) cnc.setRouterSpeed(parser.value_ulong(), clockwise);
+    #if ENABLED(CNCROUTER)
+      case PRINTER_MODE_CNC:
+        if (parser.seenval('S')) cnc.setRouterSpeed(parser.value_ulong(), clockwise);
         break;
-      #endif
+    #endif
 
-      default: break; // other tools
+    default: break; // other tools
 
-    } // printer.mode
+  } // printer.mode
 
-  }
+}
 
-  inline void gcode_M3() { gcode_M3_M4(true); }
-  inline void gcode_M4() { gcode_M3_M4(false); }
+inline void gcode_M3() { gcode_M3_M4(true); }
+inline void gcode_M4() { gcode_M3_M4(false); }
 
 #endif // HAS_MULTI_MODE

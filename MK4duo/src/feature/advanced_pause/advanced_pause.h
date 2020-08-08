@@ -55,14 +55,12 @@ class AdvancedPause {
 
   public: /** Public Function */
 
-    static void do_pause_e_move(const float &length, const feedrate_t &fr_mm_s);
-
     static bool pause_print(const float &retract, const xyz_pos_t &park_point, const float &unload_length=0, const bool show_lcd=false DXC_PARAMS);
 
     static void wait_for_confirmation(const bool is_reload=false, const int8_t max_beep_count=0 DXC_PARAMS);
 
     static void resume_print( const float &slow_load_length=0, const float &fast_load_length=0,
-                              const float &purge_length=PAUSE_PARK_PURGE_LENGTH, const int8_t max_beep_count=0 DXC_PARAMS);
+                              const float &purge_length=PAUSE_PARK_PURGE_LENGTH, const int8_t max_beep_count=0, int16_t targetTemp=0 DXC_PARAMS);
 
     static bool load_filament(const float &slow_load_length=0, const float &fast_load_length=0,
                               const float &purge_length=0, const int8_t max_beep_count=0, const bool show_lcd=false,
@@ -76,7 +74,11 @@ class AdvancedPause {
     static bool ensure_safe_temperature(const PauseModeEnum tmode=PAUSE_MODE_SAME);
 
     #if HAS_BUZZER
-      static void filament_change_beep(const int8_t max_beep_count, const bool init=false);
+      static void impatient_beep(const int8_t max_beep_count, const bool restart=false);
+      inline static void first_impatient_beep(const int8_t max_beep_count) { impatient_beep(max_beep_count, true); }
+    #else
+      inline static void impatient_beep(const int8_t, const bool=false) {}
+      inline static void first_impatient_beep(const int8_t) {}
     #endif
 
 };

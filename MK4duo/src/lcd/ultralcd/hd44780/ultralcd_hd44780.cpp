@@ -791,9 +791,11 @@ void LcdUI::draw_status_screen() {
 
           #else
 
-            _draw_axis_value(X_AXIS, ftostr4sign(LOGICAL_X_POSITION(mechanics.position.x)), blink);
+            const xy_pos_t lpos = mechanics.position.asLogical();
+
+            _draw_axis_value(X_AXIS, ftostr4sign(lpos.x), blink);
             lcd_put_wchar(' ');
-            _draw_axis_value(Y_AXIS, ftostr4sign(LOGICAL_Y_POSITION(mechanics.position.y)), blink);
+            _draw_axis_value(Y_AXIS, ftostr4sign(lpos.y), blink);
 
           #endif
 
@@ -1051,7 +1053,7 @@ void LcdUI::draw_status_screen() {
 
   #endif // LCD_HAS_STATUS_INDICATORS
 
-  #if ENABLED(AUTO_BED_LEVELING_UBL)
+  #if HAS_UBL
 
     #define HD44780_CHAR_WIDTH    5
     #define HD44780_CHAR_HEIGHT   8

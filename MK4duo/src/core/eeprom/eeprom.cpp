@@ -55,7 +55,7 @@
  * Keep this data structure up to date so
  * EEPROM size is known at compile time!
  */
-#define EEPROM_VERSION "MKV79"
+#define EEPROM_VERSION "MKV80"
 #define EEPROM_OFFSET 100
 
 typedef struct EepromDataStruct {
@@ -173,17 +173,13 @@ typedef struct EepromDataStruct {
   // Bilinear Auto Bed Leveling
   //
   #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
-    uint8_t         grid_max_x,
-                    grid_max_y;
-    xy_pos_t        bilinear_grid_spacing,
-                    bilinear_start;
-    float           z_values[GRID_MAX_POINTS_X][GRID_MAX_POINTS_Y];
+    abl_data_t      abl_data;
   #endif
 
   //
   // Universal Bed Leveling
   //
-  #if ENABLED(AUTO_BED_LEVELING_UBL)
+  #if HAS_UBL
     bool            ubl_leveling_active;
     int8_t          ubl_storage_slot;
   #endif
@@ -339,7 +335,7 @@ void EEPROM::post_process() {
     fwretract.refresh_autoretract();
   #endif
 
-  #if ENABLED(JUNCTION_DEVIATION) && ENABLED(LIN_ADVANCE)
+  #if HAS_LINEAR_E_JERK
     mechanics.recalculate_max_e_jerk();
   #endif
 
@@ -430,7 +426,7 @@ void EEPROM::post_process() {
     #endif
     EEPROM_SKIP(working_crc); // Skip the checksum slot
 
-    working_crc = 0; // clear before first "real data"
+    working_crc = 0;          // clear before first "real data"
 
     //
     // ToolManager data
@@ -546,7 +542,7 @@ void EEPROM::post_process() {
     //
     #if ENABLED(MESH_BED_LEVELING)
       static_assert(
-        sizeof(mbl.data.z_values) == GRID_MAX_POINTS * sizeof(mbl.data.z_values[0][0]),
+        sizeof(mbl.data.z_values) == (GRID_MAX_POINTS) * sizeof(mbl.data.z_values[0][0]),
         "MBL Z array is the wrong size."
       );
       EEPROM_WRITE(mbl.data);
@@ -564,21 +560,16 @@ void EEPROM::post_process() {
     //
     #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
       static_assert(
-        sizeof(abl.z_values) == GRID_MAX_POINTS * sizeof(abl.z_values[0][0]),
+        sizeof(abl.data.z_values) == (GRID_MAX_POINTS) * sizeof(abl.data.z_values[0][0]),
         "Bilinear Z array is the wrong size."
       );
-      const uint8_t grid_max_x = GRID_MAX_POINTS_X, grid_max_y = GRID_MAX_POINTS_Y;
-      EEPROM_WRITE(grid_max_x);
-      EEPROM_WRITE(grid_max_y);
-      EEPROM_WRITE(abl.bilinear_grid_spacing);
-      EEPROM_WRITE(abl.bilinear_start);
-      EEPROM_WRITE(abl.z_values);
+      EEPROM_WRITE(abl.data);
     #endif // AUTO_BED_LEVELING_BILINEAR
 
     //
     // Universal Bed Leveling
     //
-    #if ENABLED(AUTO_BED_LEVELING_UBL)
+    #if HAS_UBL
       const bool bedlevel_leveling_active = bedlevel.flag.leveling_active;
       EEPROM_WRITE(bedlevel_leveling_active);
       EEPROM_WRITE(ubl.storage_slot);
@@ -659,7 +650,7 @@ void EEPROM::post_process() {
     // IDLE oozing
     //
     #if ENABLED(IDLE_OOZING_PREVENT)
-      EEPROM_WRITE(printer.IDLE_OOZING_enabled);
+      EEPROM_WRITE(toolManager.IDLE_OOZING_enabled);
     #endif
 
     //
@@ -761,15 +752,15 @@ void EEPROM::post_process() {
       flag.error |= size_error(eeprom_size);
     }
 
+    flag.error |= memorystore.access_write();
+
     //
     // UBL Mesh
     //
-    #if ENABLED(AUTO_BED_LEVELING_UBL)
+    #if HAS_UBL
       if (ubl.storage_slot >= 0)
         store_mesh(ubl.storage_slot);
     #endif
-
-    flag.error |= memorystore.access_write();
 
     sound.feedback(!flag.error);
 
@@ -978,29 +969,13 @@ void EEPROM::post_process() {
       // Bilinear Auto Bed Leveling
       //
       #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
-        uint8_t grid_max_x, grid_max_y;
-        EEPROM_READ_ALWAYS(grid_max_x);
-        EEPROM_READ_ALWAYS(grid_max_y);
-        if (grid_max_x == GRID_MAX_POINTS_X && grid_max_y == GRID_MAX_POINTS_Y) {
-          if (!flag.validating) bedlevel.set_bed_leveling_enabled(false);
-          EEPROM_READ(abl.bilinear_grid_spacing);
-          EEPROM_READ(abl.bilinear_start);
-          EEPROM_READ(abl.z_values);
-        }
-        else { // EEPROM data is stale
-          // Skip past disabled (or stale) Bilinear Grid data
-          int bgs[2], bs[2];
-          EEPROM_READ(bgs);
-          EEPROM_READ(bs);
-          float dummy = 0;
-          for (uint16_t q = grid_max_x * grid_max_y; q--;) EEPROM_READ(dummy);
-        }
+        EEPROM_READ(abl.data);
       #endif // AUTO_BED_LEVELING_BILINEAR
 
       //
       // Universal Bed Leveling
       //
-      #if ENABLED(AUTO_BED_LEVELING_UBL)
+      #if HAS_UBL
         bool bedlevel_leveling_active;
         EEPROM_READ(bedlevel_leveling_active);
         EEPROM_READ(ubl.storage_slot);
@@ -1080,7 +1055,7 @@ void EEPROM::post_process() {
       // IDLE oozing
       //
       #if ENABLED(IDLE_OOZING_PREVENT)
-        EEPROM_READ(printer.IDLE_OOZING_enabled);
+        EEPROM_READ(toolManager.IDLE_OOZING_enabled);
       #endif
 
       //
@@ -1215,7 +1190,7 @@ void EEPROM::post_process() {
 
       if (!flag.validating && !flag.error) post_process();
 
-      #if ENABLED(AUTO_BED_LEVELING_UBL)
+      #if HAS_UBL
 
         if (!flag.validating) {
 
@@ -1282,7 +1257,7 @@ void EEPROM::post_process() {
     return success;
   }
 
-  #if ENABLED(AUTO_BED_LEVELING_UBL)
+  #if HAS_UBL
 
     #if ENABLED(EEPROM_CHITCHAT)
       void ubl_invalid_slot(const int s) {
@@ -1323,9 +1298,11 @@ void EEPROM::post_process() {
       uint16_t crc = 0;
       int pos = mesh_slot_offset(slot);
 
+      memorystore.access_start();
       const bool status = memorystore.write_data(pos, (uint8_t *)&ubl.z_values, sizeof(ubl.z_values), &crc);
+      memorystore.access_write();
 
-      if (status) SERIAL_MSG("?Unable to save mesh data.\n");
+      if (status) SERIAL_EM("?Unable to save mesh data.");
       else        DEBUG_EMV("Mesh saved in slot ", slot);
 
     }
@@ -1343,7 +1320,9 @@ void EEPROM::post_process() {
       uint16_t crc = 0;
       uint8_t * const dest = into ? (uint8_t*)into : (uint8_t*)&ubl.z_values;
 
+      memorystore.access_start();
       const bool status = memorystore.read_data(pos, dest, sizeof(ubl.z_values), &crc);
+      memorystore.access_write();
 
       if (status) SERIAL_MSG("?Unable to load mesh data.\n");
       else        DEBUG_EMV("Mesh loaded from slot ", slot);
@@ -1629,7 +1608,7 @@ void EEPROM::reset() {
 
       #if ENABLED(MESH_BED_LEVELING)
         SERIAL_LM(CFG, "Mesh Bed Leveling");
-      #elif ENABLED(AUTO_BED_LEVELING_UBL)
+      #elif HAS_UBL
         SERIAL_LM(CFG, "Unified Bed Leveling");
       #elif HAS_ABL_OR_UBL
         SERIAL_LM(CFG, "Auto Bed Leveling");
@@ -1655,7 +1634,7 @@ void EEPROM::reset() {
           SERIAL_LMV(CFG, "  G29 S4 Z", LINEAR_UNIT(mbl.data.z_offset), 5);
         }
 
-      #elif ENABLED(AUTO_BED_LEVELING_UBL)
+      #elif HAS_UBL
 
         ubl.report_state();
         SERIAL_LMV(CFG, "  Active Mesh Slot: ", ubl.storage_slot);
@@ -1670,7 +1649,7 @@ void EEPROM::reset() {
             for (uint8_t px = 0; px < GRID_MAX_POINTS_X; px++) {
               SERIAL_SMV(CFG, "  G29 W I", (int)px);
               SERIAL_MV(" J", (int)py);
-              SERIAL_MV(" Z", LINEAR_UNIT(abl.z_values[px][py]), 5);
+              SERIAL_MV(" Z", LINEAR_UNIT(abl.data.z_values[px][py]), 5);
               SERIAL_EOL();
             }
           }
@@ -1763,21 +1742,8 @@ void EEPROM::reset() {
      * Alligator current drivers M906
      */
     #if MB(ALLIGATOR_R2) || MB(ALLIGATOR_R3)
-
-      SERIAL_LM(CFG, "Stepper driver current (mA)");
-      SERIAL_SM(CFG, "  M906");
-      SERIAL_MV(" X", driver.x->data.ma);
-      SERIAL_MV(" Y", driver.y->data.ma);
-      SERIAL_MV(" Z", driver.z->data.ma);
-      SERIAL_EOL();
-      LOOP_DRV_EXT() {
-        SERIAL_SM(CFG, "  M906");
-        SERIAL_MV(" T", int(d));
-        SERIAL_MV(" E", driver.e[extruders[d]->get_driver()]->data.ma);
-        SERIAL_EOL();
-      }
-
-    #endif // ALLIGATOR_R2 || ALLIGATOR_R3
+      externaldac.print_M906();
+    #endif
 
     #if HAS_TRINAMIC
 

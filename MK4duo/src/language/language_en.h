@@ -93,6 +93,10 @@ namespace language_en {
   FSTRINGVALUE(MSG_PREHEAT_3_SETTINGS               , _UxGT("Preheat ") PREHEAT_3_LABEL _UxGT(" Conf"));
   FSTRINGVALUE(MSG_PREHEAT_CUSTOM                   , _UxGT("Preheat Custom"));
   FSTRINGVALUE(MSG_COOLDOWN                         , _UxGT("Cooldown"));
+  FSTRINGVALUE(MSG_LASER_MENU                       , _UxGT("Laser Control"));
+  FSTRINGVALUE(MSG_LASER_OFF                        , _UxGT("Laser Off"));
+  FSTRINGVALUE(MSG_LASER_ON                         , _UxGT("Laser On"));
+  FSTRINGVALUE(MSG_LASER_POWER                      , _UxGT("Laser Power"));
   FSTRINGVALUE(MSG_SWITCH_PS_ON                     , _UxGT("Switch Power On"));
   FSTRINGVALUE(MSG_SWITCH_PS_OFF                    , _UxGT("Switch Power Off"));
   FSTRINGVALUE(MSG_EXTRUDE                          , _UxGT("Extrude"));
@@ -183,8 +187,8 @@ namespace language_en {
   FSTRINGVALUE(MSG_UBL_STORAGE_SLOT                 , _UxGT("Memory Slot"));
   FSTRINGVALUE(MSG_UBL_LOAD_MESH                    , _UxGT("Load Bed Mesh"));
   FSTRINGVALUE(MSG_UBL_SAVE_MESH                    , _UxGT("Save Bed Mesh"));
-  FSTRINGVALUE(MSG_MESH_LOADED                      , _UxGT("M117 Mesh %i Loaded"));
-  FSTRINGVALUE(MSG_MESH_SAVED                       , _UxGT("M117 Mesh %i Saved"));
+  FSTRINGVALUE(MSG_MESH_LOADED                      , _UxGT("Mesh %i Loaded"));
+  FSTRINGVALUE(MSG_MESH_SAVED                       , _UxGT("Mesh %i Saved"));
   FSTRINGVALUE(MSG_UBL_NO_STORAGE                   , _UxGT("No Storage"));
   FSTRINGVALUE(MSG_UBL_SAVE_ERROR                   , _UxGT("Err: UBL Save"));
   FSTRINGVALUE(MSG_UBL_RESTORE_ERROR                , _UxGT("Err: UBL Restore"));
@@ -284,6 +288,8 @@ namespace language_en {
   FSTRINGVALUE(MSG_AMAX_E                           , _UxGT("Amax ") LCD_STR_E);
   FSTRINGVALUE(MSG_A_RETRACT                        , _UxGT("A-Retract E"));
   FSTRINGVALUE(MSG_A_TRAVEL                         , _UxGT("A-Travel"));
+  FSTRINGVALUE(MSG_XY_FREQUENCY_LIMIT               , _UxGT("Frequency max"));
+  FSTRINGVALUE(MSG_XY_FREQUENCY_FEEDRATE            , _UxGT("Feed min"));
   FSTRINGVALUE(MSG_STEPS_PER_MM                     , _UxGT("Steps/mm"));
   FSTRINGVALUE(MSG_A_STEPS                          , _UxGT("steps/mm ") LCD_STR_A);
   FSTRINGVALUE(MSG_B_STEPS                          , _UxGT("steps/mm ") LCD_STR_B);
@@ -316,6 +322,7 @@ namespace language_en {
   FSTRINGVALUE(MSG_BUTTON_RESET                     , _UxGT("Reset"));
   FSTRINGVALUE(MSG_BUTTON_CANCEL                    , _UxGT("Cancel"));
   FSTRINGVALUE(MSG_BUTTON_DONE                      , _UxGT("Done"));
+  FSTRINGVALUE(MSG_PAUSING                          , _UxGT("Pausing..."));
   FSTRINGVALUE(MSG_PAUSE_PRINT                      , _UxGT("Pause Print"));
   FSTRINGVALUE(MSG_RESUME_PRINT                     , _UxGT("Resume Print"));
   FSTRINGVALUE(MSG_STOP_PRINT                       , _UxGT("Stop Print"));
@@ -326,9 +333,9 @@ namespace language_en {
   FSTRINGVALUE(MSG_USERWAIT                         , _UxGT("Click to Resume..."));
   FSTRINGVALUE(MSG_PRINT_PAUSED                     , _UxGT("Print Paused"));
   FSTRINGVALUE(MSG_PRINTING                         , _UxGT("Printing..."));
-  FSTRINGVALUE(MSG_STOPPING                         , _UxGT("Print finish"));
   FSTRINGVALUE(MSG_RESUMING                         , _UxGT("Resuming print"));
   FSTRINGVALUE(MSG_PRINT_ABORTED                    , _UxGT("Print Aborted"));
+  FSTRINGVALUE(MSG_PRINT_DONE                       , _UxGT("Print Done"));
   FSTRINGVALUE(MSG_NO_MOVE                          , _UxGT("No Move."));
   FSTRINGVALUE(MSG_KILLED                           , _UxGT("KILLED. "));
   FSTRINGVALUE(MSG_STOPPED                          , _UxGT("STOPPED. "));
@@ -538,7 +545,7 @@ namespace language_en {
   //
   #if LCD_HEIGHT >= 4
     FSTRINGVALUE(MSG_ADVANCED_PAUSE_WAITING         , _UxGT(MSG_2_LINE("Press Button", "to resume print")));
-    FSTRINGVALUE(MSG_PAUSE_PRINT_INIT               , _UxGT(MSG_1_LINE("Parking...")));
+    FSTRINGVALUE(MSG_PAUSE_PRINT_PARKING            , _UxGT(MSG_1_LINE("Parking...")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_INIT           , _UxGT(MSG_3_LINE("Wait for", "filament change", "to start")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_INSERT         , _UxGT(MSG_3_LINE("Insert filament", "and press button", "to continue")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_HEAT           , _UxGT(MSG_2_LINE("Press button", "to heat nozzle")));
@@ -551,7 +558,7 @@ namespace language_en {
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_RESUME         , _UxGT(MSG_2_LINE("Wait for print", "to resume...")));
   #else // LCD_HEIGHT < 4
     FSTRINGVALUE(MSG_ADVANCED_PAUSE_WAITING         , _UxGT(MSG_1_LINE("Click to continue")));
-    FSTRINGVALUE(MSG_PAUSE_PRINT_INIT               , _UxGT(MSG_1_LINE("Parking...")));
+    FSTRINGVALUE(MSG_PAUSE_PRINT_PARKING            , _UxGT(MSG_1_LINE("Parking...")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_INIT           , _UxGT(MSG_1_LINE("Please wait...")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_INSERT         , _UxGT(MSG_1_LINE("Insert and Click")));
     FSTRINGVALUE(MSG_FILAMENT_CHANGE_HEAT           , _UxGT(MSG_1_LINE("Click to heat")));
@@ -582,7 +589,6 @@ namespace language_en {
   // Extra
   FSTRINGVALUE(MSG_RESTART_PRINT                    , _UxGT("Restart print"));
   FSTRINGVALUE(MSG_FIX_LOSE_STEPS                   , _UxGT("Fix axis steps"));
-  FSTRINGVALUE(MSG_LASER                            , _UxGT("Laser Preset"));
   FSTRINGVALUE(MSG_NEED_TUNE_PID                    , _UxGT("Need Tune PID"));
   FSTRINGVALUE(MSG_ARE_YOU_SURE                     , _UxGT("Are you sure"));
 

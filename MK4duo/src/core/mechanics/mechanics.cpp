@@ -70,9 +70,19 @@ uint8_t Mechanics::axis_relative_modes = (
   xyz_pos_t Mechanics::workspace_offset{ 0.0f, 0.0f, 0.0f };
 #endif
 
+#if ENABLED(CNC_WORKSPACE_PLANES)
+  WorkspacePlaneEnum Mechanics::workspace_plane = PLANE_XY;
+#endif
+
+#if HAS_XY_FREQUENCY_LIMIT
+  int32_t Mechanics::xy_freq_min_interval_us = LROUND(1000000.0f / (XY_FREQUENCY_LIMIT));
+#endif
+
 /** Private Parameters */
 feedrate_t  Mechanics::saved_feedrate_mm_s        = 0.0f;
 int16_t     Mechanics::saved_feedrate_percentage  = 0;
+
+/** Public Function */
 
 /**
  * Get homedir for axis
@@ -101,21 +111,17 @@ int8_t Mechanics::get_homedir(const AxisEnum axis) {
 void Mechanics::set_position_from_steppers_for_axis(const AxisEnum axis) {
 
   mechanics.get_cartesian_from_steppers();
+  xyze_pos_t pos = cartesian_position;
+  pos.e = planner.get_axis_position_mm(E_AXIS);
 
   #if HAS_POSITION_MODIFIERS
-    xyze_pos_t pos = { cartesian_position.x, cartesian_position.y, cartesian_position.z, position.e };
-    planner.unapply_modifiers(pos
-      #if HAS_LEVELING
-        , true
-      #endif
-    );
-    xyze_pos_t &cartesian_position = pos;
+    planner.unapply_modifiers(pos, true);
   #endif
 
   if (axis == ALL_AXES)
-    position = cartesian_position;
+    position = pos;
   else
-    position[axis] = cartesian_position[axis];
+    position[axis] = pos[axis];
 }
 
 /**
@@ -206,37 +212,37 @@ void Mechanics::sync_plan_position_e() {
   planner.set_e_position_mm(position.e);
 }
 
+void Mechanics::unscaled_e_move(const float &length, const feedrate_t &fr_mm_s) {
+  #if HAS_FILAMENT_SENSOR
+    filamentrunout.reset();
+  #endif
+  position.e += length /extruders[toolManager.extruder.active]->e_factor;
+  planner.buffer_line(position, fr_mm_s, toolManager.extruder.active);
+  planner.synchronize();
+}
+
 /**
  * Report position to host
  */
-void Mechanics::report_position() {
-  const xyz_pos_t lpos = position.asLogical();
-  SERIAL_MV( "X:", lpos.x);
-  SERIAL_MV(" Y:", lpos.y);
-  SERIAL_MV(" Z:", lpos.z);
-  SERIAL_EMV(" E:", position.e);
-
-  //stepper.report_positions();
-}
-
-void Mechanics::report_xyz(const xyz_pos_t &pos, const uint8_t precision/*=3*/) {
+void Mechanics::report_xyze(const xyze_pos_t &pos, const uint8_t n/*=XYZE*/) {
   char str[12];
-  for (uint8_t i = X_AXIS; i <= Z_AXIS; i++) {
+  for (uint8_t a = 0; a < n; a++) {
     SERIAL_CHR(' ');
-    SERIAL_CHR(axis_codes[i]);
+    SERIAL_CHR(axis_codes[a]);
     SERIAL_CHR(':');
-    SERIAL_TXT(dtostrf(pos[i], 1, precision, str));
+    if (pos[a] >= 0) SERIAL_CHR(' ');
+    SERIAL_TXT(dtostrf(pos[a], 1, 3, str));
   }
   SERIAL_EOL();
 }
 
-void Mechanics::report_xyze(const xyze_pos_t &pos, const uint8_t n/*=4*/, const uint8_t precision/*=3*/) {
+void Mechanics::report_xyz(const xyz_pos_t &pos) {
   char str[12];
-  for (uint8_t i = 0; i < n; i++) {
+  LOOP_XYZ(a) {
     SERIAL_CHR(' ');
-    SERIAL_CHR(axis_codes[i]);
+    SERIAL_CHR(axis_codes[a]);
     SERIAL_CHR(':');
-    SERIAL_TXT(dtostrf(pos[i], 1, precision, str));
+    SERIAL_TXT(dtostrf(pos[a], 1, 3, str));
   }
   SERIAL_EOL();
 }
@@ -244,7 +250,7 @@ void Mechanics::report_xyze(const xyze_pos_t &pos, const uint8_t n/*=4*/, const 
 /**
  * Homing bump feedrate (mm/s)
  */
-float Mechanics::get_homing_bump_feedrate(const AxisEnum axis) {
+feedrate_t Mechanics::get_homing_bump_feedrate(const AxisEnum axis) {
   #if HOMING_Z_WITH_PROBE
     if (axis == Z_AXIS) return MMM_TO_MMS(Z_PROBE_SPEED_SLOW);
   #endif
@@ -270,9 +276,9 @@ bool Mechanics::axis_unhomed_error(uint8_t axis_bits/*=0x07*/) {
     PGM_P home_first = GET_TEXT(MSG_HOME_FIRST);
     char msg[strlen_P(home_first)+1];
     sprintf_P(msg, home_first,
-      TEST(axis_bits, X_AXIS) ? MSG_HOST_X : "",
-      TEST(axis_bits, Y_AXIS) ? MSG_HOST_Y : "",
-      TEST(axis_bits, Z_AXIS) ? MSG_HOST_Y : ""
+      TEST(axis_bits, X_AXIS) ? STR_X : "",
+      TEST(axis_bits, Y_AXIS) ? STR_Y : "",
+      TEST(axis_bits, Z_AXIS) ? STR_Y : ""
     );
     SERIAL_STR(ECHO);
     SERIAL_STR(msg);
@@ -313,10 +319,11 @@ bool Mechanics::axis_unhomed_error(uint8_t axis_bits/*=0x07*/) {
 
   void Mechanics::recalculate_max_e_jerk() {
     LOOP_EXTRUDER() {
-      extruders[e]->data.max_jerk = SQRT(SQRT(0.5) *
+      extruders[e]->data.max_jerk = SQRT(
         data.junction_deviation_mm *
         extruders[e]->data.max_acceleration_mm_per_s2 *
-        RECIPROCAL(1.0 - SQRT(0.5))
+        (SQRT(0.5)) /
+        (1.0f - (SQRT(0.5)))
       );
     }
   }

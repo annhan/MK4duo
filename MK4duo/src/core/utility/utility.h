@@ -57,7 +57,7 @@ struct FlagBits {
   inline bool marked(const xy_int8_t &xy)       { return marked(xy.y, xy.x); }
 };
 
-#if ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION)
+#if HAS_UBL || ENABLED(G26_MESH_VALIDATION)
   typedef FlagBits<GRID_MAX_POINTS_X, GRID_MAX_POINTS_Y> MeshFlags;
 #endif
 
@@ -130,6 +130,9 @@ char* ftostr52sp(const float &f);
 
 // Convert signed float to string with +123.45 format
 char* ftostr52sign(const float &f);
+
+// Convert signed float to string with +12.345 format
+const char* ftostr53sign(const float &f);
 
 // Convert unsigned float to string with 1234.5 format omitting trailing zeros
 char* ftostr51rj(const float &f);

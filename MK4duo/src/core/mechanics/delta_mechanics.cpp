@@ -80,7 +80,7 @@ void Delta_Mechanics::factory_parameters() {
   data.min_segment_time_us        = DEFAULT_MIN_SEGMENT_TIME;
   data.min_travel_feedrate_mm_s   = DEFAULT_MIN_TRAVEL_FEEDRATE;
 
-  #if ENABLED(JUNCTION_DEVIATION)
+  #if HAS_JUNCTION_DEVIATION
     data.junction_deviation_mm = float(JUNCTION_DEVIATION_MM);
   #endif
 
@@ -100,6 +100,12 @@ void Delta_Mechanics::factory_parameters() {
   data.tower_angle_adj.set(TOWER_A_ANGLE_ADJ, TOWER_B_ANGLE_ADJ, TOWER_C_ANGLE_ADJ);
   data.tower_radius_adj.set(TOWER_A_RADIUS_ADJ, TOWER_B_RADIUS_ADJ, TOWER_C_RADIUS_ADJ);
   data.diagonal_rod_adj.set(TOWER_A_DIAGROD_ADJ, TOWER_B_DIAGROD_ADJ, TOWER_C_DIAGROD_ADJ);
+
+  #if HAS_XY_FREQUENCY_LIMIT
+    data.xy_freq_limit_hz         = XY_FREQUENCY_LIMIT;
+    data.xy_freq_min_speed_factor = (XY_FREQUENCY_MIN_PERCENT) * 0.01f;
+    refresh_frequency_limit();
+  #endif
 
 }
 
@@ -596,6 +602,8 @@ void Delta_Mechanics::home(const bool report/*=true*/) {
  */
 void Delta_Mechanics::do_homing_move(const AxisEnum axis, const float distance, const feedrate_t fr_mm_s/*=0.0f*/) {
 
+  const feedrate_t real_fr_mm_s = fr_mm_s ? fr_mm_s : homing_feedrate_mm_s.z;
+
   if (printer.debugFeature()) {
     DEBUG_MC(">>> do_homing_move(", axis_codes[axis]);
     DEBUG_MV(", ", distance);
@@ -603,7 +611,7 @@ void Delta_Mechanics::do_homing_move(const AxisEnum axis, const float distance, 
     if (fr_mm_s)
       DEBUG_VAL(fr_mm_s);
     else {
-      DEBUG_MV(" [", homing_feedrate_mm_s[axis]);
+      DEBUG_MV(" [", real_fr_mm_s);
       DEBUG_CHR(']');
     }
     DEBUG_CHR(')');
@@ -624,21 +632,21 @@ void Delta_Mechanics::do_homing_move(const AxisEnum axis, const float distance, 
     #endif
   }
 
-  abce_pos_t target = { planner.get_axis_position_mm(A_AXIS), planner.get_axis_position_mm(B_AXIS), planner.get_axis_position_mm(C_AXIS), planner.get_axis_position_mm(E_AXIS) };
+  abce_pos_t target = planner.get_axis_positions_mm();
   target[axis] = 0;
   planner.set_machine_position_mm(target);
   target[axis] = distance;
 
-  #if ENABLED(JUNCTION_DEVIATION)
-    const xyze_pos_t delta_mm_cart{0};
+  #if HAS_DIST_MM_ARG
+    const xyze_pos_t cart_dist_mm{0};
   #endif
 
   // Set delta axes directly
   planner.buffer_segment(target
-    #if ENABLED(JUNCTION_DEVIATION)
-      , delta_mm_cart
+    #if HAS_DIST_MM_ARG
+      , cart_dist_mm
     #endif
-    , fr_mm_s ? fr_mm_s : homing_feedrate_mm_s.z, toolManager.extruder.active
+    , real_fr_mm_s, toolManager.extruder.active
   );
 
   planner.synchronize();
@@ -703,8 +711,30 @@ bool Delta_Mechanics::position_is_reachable_by_probe(const float &rx, const floa
           position_is_reachable(rx - probe.data.offset.x, ry - probe.data.offset.y);
 }
 
+// Report the real current position according to the steppers
+void Delta_Mechanics::report_real_position() {
+
+  get_cartesian_from_steppers();
+  xyze_pos_t npos = cartesian_position;
+  npos.e = planner.get_axis_position_mm(E_AXIS);
+
+  #if HAS_POSITION_MODIFIERS
+    planner.unapply_modifiers(npos, true);
+  #endif
+
+  report_logical_position(npos);
+  stepper.report_positions();
+
+}
+
+// Report the logical current position according to the most recent G-code command
+void Delta_Mechanics::report_position() {
+  report_logical_position(position);
+  stepper.report_positions();
+}
+
 // Report detail current position to host
-void Delta_Mechanics::report_position_detail() {
+void Delta_Mechanics::report_detail_position() {
 
   SERIAL_MSG("\nLogical:");
   report_xyz(position.asLogical());
@@ -746,9 +776,15 @@ void Delta_Mechanics::report_position_detail() {
   report_xyze(from_steppers);
 
   const xyze_float_t diff = from_steppers - leveled;
-  SERIAL_MSG("Differ: ");
+  SERIAL_MSG("Diff:   ");
   report_xyze(diff);
 
+}
+
+// Report the logical position for a given machine position
+void Delta_Mechanics::report_logical_position(const xyze_pos_t &pos) {
+  const xyze_pos_t lpos = pos.asLogical();
+  report_xyze(lpos);
 }
 
 #if DISABLED(DISABLE_M503)
@@ -778,6 +814,11 @@ void Delta_Mechanics::report_position_detail() {
       SERIAL_SMV(CFG, "  M201 T", (int)e);
       SERIAL_EMV(" E", VOLUMETRIC_UNIT(extruders[e]->data.max_acceleration_mm_per_s2));
     }
+    #if HAS_XY_FREQUENCY_LIMIT
+      SERIAL_LM(CFG, "XY Frequency Limit: F<freq> G<min%>");
+      SERIAL_SMV(CFG, "  M201 F", data.xy_freq_limit_hz);
+      SERIAL_EMV(" G", int(data.xy_freq_min_speed_factor * 100));
+    #endif
   }
 
   void Delta_Mechanics::print_M203() {
@@ -805,7 +846,7 @@ void Delta_Mechanics::report_position_detail() {
     SERIAL_MV(" S", LINEAR_UNIT(data.min_feedrate_mm_s), 3);
     SERIAL_EMV(" V", LINEAR_UNIT(data.min_travel_feedrate_mm_s), 3);
 
-    #if ENABLED(JUNCTION_DEVIATION)
+    #if HAS_JUNCTION_DEVIATION
       SERIAL_LM(CFG, "Junction Deviation: J<JUNCTION_DEVIATION_MM>");
       SERIAL_LMV(CFG, "  M205 J", data.junction_deviation_mm, 2);
     #endif
@@ -879,10 +920,6 @@ void Delta_Mechanics::report_position_detail() {
 /** Private Function */
 void Delta_Mechanics::homeaxis(const AxisEnum axis) {
 
-  #define CAN_HOME(A) \
-    (axis == A##_AXIS && ((A##_MIN_PIN > -1 && A##_HOME_DIR < 0) || (A##_MAX_PIN > -1 && A##_HOME_DIR > 0)))
-  if (!CAN_HOME(X) && !CAN_HOME(Y) && !CAN_HOME(Z)) return;
-
   if (printer.debugFeature()) {
     DEBUG_MC(">>> homeaxis(", axis_codes[axis]);
     DEBUG_CHR(')'); DEBUG_EOL();
@@ -905,14 +942,20 @@ void Delta_Mechanics::homeaxis(const AxisEnum axis) {
     do_homing_move(axis, 2 * bump, get_homing_bump_feedrate(axis));
   }
 
+  #if HAS_TRINAMIC
+    tmcManager.go_to_homing_phase(axis, get_homing_bump_feedrate(axis));
+  #endif
+
   // Delta has already moved all three towers up in G28
   // so here it re-homes each tower in turn.
   // Delta homing treats the axes as normal linear axes.
+  const float adjDistance = data.endstop_adj[axis],
+              minDistance = (MIN_STEPS_PER_SEGMENT) * steps_to_mm[axis];
 
-  // retrace by the amount specified in data.endstop_adj + additional 0.1mm in order to have minimum steps
-  if (data.endstop_adj[axis] < 0) {
-    if (printer.debugFeature()) DEBUG_EM("endstop_adj:");
-    do_homing_move(axis, data.endstop_adj[axis] - (MIN_STEPS_PER_SEGMENT + 1) * steps_to_mm[axis]);
+  // retrace by the amount specified in delta_endstop_adj if more than min steps.
+  if (adjDistance < 0 && ABS(adjDistance) > minDistance) { // away from endstop, more than min distance
+    if (printer.debugFeature()) DEBUG_EMV("endstop_adj:", adjDistance);
+    do_homing_move(axis, adjDistance, get_homing_bump_feedrate(axis));
   }
 
   // Clear retracted status if homing the Z axis

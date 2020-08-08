@@ -140,10 +140,7 @@ class FilamentRunoutBase {
       #endif
 
       const char tool = DIGIT(toolManager.extruder.active);
-      host_action.prompt_reason = PROMPT_FILAMENT_RUNOUT;
-      host_action.prompt_begin(PSTR("Filament Runout T"), false);
-      SERIAL_CHR(tool);
-      SERIAL_EOL();
+      host_action.prompt_begin(PROMPT_FILAMENT_RUNOUT, PSTR("Filament Runout T"), tool);
       host_action.prompt_show();
 
       const bool run_runout_script = !sensor.isHostHandling();
@@ -360,7 +357,7 @@ class FilamentSensorBase {
       static inline void run() {
         #if ENABLED(FILAMENT_RUNOUT_SENSOR_DEBUG)
           static short_timer_t nex_timer(millis());
-          if (nex_timer.expired(1000)) {
+          if (nex_timer.expired(SECOND_TO_MILLIS(1))) {
             LOOP_EXTRUDER() {
               SERIAL_STR(e ? PSTR(", ") : PSTR("Remaining mm: "));
               SERIAL_VAL(runout_mm_countdown[e]);

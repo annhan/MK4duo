@@ -39,14 +39,10 @@ inline void gcode_M0_M1() {
 
   millis_l ms = 0;
 
-  planner.synchronize();
-
   if (parser.seenval('P')) ms = parser.value_millis();              // Milliseconds to wait
   if (parser.seenval('S')) ms = parser.value_millis_from_seconds(); // Seconds to wait
 
-  #if HAS_LEDS_OFF_FLAG
-    if (parser.seen('Q')) ledevents.onPrintCompleted();             // Change LED color for Print Completed
-  #endif
+  planner.synchronize();
 
   #if HAS_LCD_MENU
 
@@ -65,15 +61,12 @@ inline void gcode_M0_M1() {
 
   #endif
 
-  PRINTER_KEEPALIVE(PausedforUser);
-  printer.setWaitForUser(true);
-
   #if HAS_NEXTION_LCD
     lcdui.goto_screen(menu_m0);
   #endif
 
-  if (ms > 0) ms += millis();   // wait until this time for a click
-  while (printer.isWaitForUser() && (ms == 0 || PENDING(millis(), ms))) printer.idle();
+  // wait until this time for a click
+  printer.wait_for_user_response(ms);
 
   #if HAS_NEXTION_LCD
     lcdui.return_to_status();
@@ -83,7 +76,6 @@ inline void gcode_M0_M1() {
     lcdui.reset_status();
   #endif
 
-  printer.setWaitForUser(false);
 }
 
 #endif // HAS_RESUME_CONTINUE

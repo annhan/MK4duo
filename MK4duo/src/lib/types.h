@@ -24,9 +24,16 @@
 class __FlashStringHelper;
 typedef const __FlashStringHelper *progmem_str;
 
+/**
+ * Type for pins
+ */
+typedef int8_t    pin_t;
+
+/**
+ * Type for millis
+ */
 typedef uint32_t  millis_l;
 typedef uint16_t  millis_s;
-typedef int8_t    pin_t;
 
 /**
  * Mixer color for AVR or 32 bit
@@ -139,36 +146,15 @@ typedef ab_float_t                       ab_pos_t;
 typedef abc_float_t                     abc_pos_t;
 typedef abce_float_t                   abce_pos_t;
 
-#if ENABLED(WORKSPACE_OFFSETS)
-
-  #define NATIVE_TO_LOGICAL(POS, AXIS)    ((POS) + mechanics.workspace_offset[AXIS])
-  #define LOGICAL_TO_NATIVE(POS, AXIS)    ((POS) - mechanics.workspace_offset[AXIS])
-  inline void toLogical(xy_pos_t &raw)    { raw += mechanics.workspace_offset; }
-  inline void toLogical(xyz_pos_t &raw)   { raw += mechanics.workspace_offset; }
-  inline void toLogical(xyze_pos_t &raw)  { raw += mechanics.workspace_offset; }
-  inline void toNative(xy_pos_t &raw)     { raw -= mechanics.workspace_offset; }
-  inline void toNative(xyz_pos_t &raw)    { raw -= mechanics.workspace_offset; }
-  inline void toNative(xyze_pos_t &raw)   { raw -= mechanics.workspace_offset; }
-
-#else
-
-  #define NATIVE_TO_LOGICAL(POS, AXIS)    (POS)
-  #define LOGICAL_TO_NATIVE(POS, AXIS)    (POS)
-  inline void toLogical(xy_pos_t &raw)    { UNUSED(raw); }
-  inline void toLogical(xyz_pos_t &raw)   { UNUSED(raw); }
-  inline void toLogical(xyze_pos_t &raw)  { UNUSED(raw); }
-  inline void toNative(xy_pos_t &raw)     { UNUSED(raw); }
-  inline void toNative(xyz_pos_t &raw)    { UNUSED(raw); }
-  inline void toNative(xyze_pos_t &raw)   { UNUSED(raw); }
-
-#endif
-
-#define LOGICAL_X_POSITION(POS) NATIVE_TO_LOGICAL(POS, X_AXIS)
-#define LOGICAL_Y_POSITION(POS) NATIVE_TO_LOGICAL(POS, Y_AXIS)
-#define LOGICAL_Z_POSITION(POS) NATIVE_TO_LOGICAL(POS, Z_AXIS)
-#define NATIVE_X_POSITION(POS)  LOGICAL_TO_NATIVE(POS, X_AXIS)
-#define NATIVE_Y_POSITION(POS)  LOGICAL_TO_NATIVE(POS, Y_AXIS)
-#define NATIVE_Z_POSITION(POS)  LOGICAL_TO_NATIVE(POS, Z_AXIS)
+/**
+ * External conversion methods
+ */
+void toLogical(xy_pos_t &raw);
+void toLogical(xyz_pos_t &raw);
+void toLogical(xyze_pos_t &raw);
+void toNative(xy_pos_t &raw);
+void toNative(xyz_pos_t &raw);
+void toNative(xyze_pos_t &raw);
 
 /**
  * XY coordinates, counters, etc.
@@ -182,6 +168,9 @@ struct XYval {
   };
   FORCE_INLINE void set(const T px)                               { x = px; }
   FORCE_INLINE void set(const T px, const T py)                   { x = px; y = py; }
+  FORCE_INLINE void set(const T (&arr)[XY])                       { x = arr[0]; y = arr[1]; }
+  FORCE_INLINE void set(const T (&arr)[XYZ])                      { x = arr[0]; y = arr[1]; }
+  FORCE_INLINE void set(const T (&arr)[XYZE])                     { x = arr[0]; y = arr[1]; }
   FORCE_INLINE void reset()                                       { x = y = 0; }
   FORCE_INLINE T magnitude()                                const { return (T)sqrtf(x*x + y*y); }
   FORCE_INLINE operator T* ()                                     { return pos; }
@@ -192,6 +181,8 @@ struct XYval {
   FORCE_INLINE XYval<int16_t>    asInt()                    const { return { int16_t(x), int16_t(y) }; }
   FORCE_INLINE XYval<int32_t>   asLong()                          { return { int32_t(x), int32_t(y) }; }
   FORCE_INLINE XYval<int32_t>   asLong()                    const { return { int32_t(x), int32_t(y) }; }
+  FORCE_INLINE XYval<int32_t>   ROUNDL()                          { return { int32_t(LROUND(x)), int32_t(LROUND(y)) }; }
+  FORCE_INLINE XYval<int32_t>   ROUNDL()                    const { return { int32_t(LROUND(x)), int32_t(LROUND(y)) }; }
   FORCE_INLINE XYval<float>    asFloat()                          { return {   float(x),   float(y) }; }
   FORCE_INLINE XYval<float>    asFloat()                    const { return {   float(x),   float(y) }; }
   FORCE_INLINE XYval<float> reciprocal()                    const { return {  _RECIP(x),  _RECIP(y) }; }
@@ -291,6 +282,9 @@ struct XYZval {
   FORCE_INLINE void set(const T px, const T py)                   { x = px; y = py; }
   FORCE_INLINE void set(const T px, const T py, const T pz)       { x = px; y = py; z = pz; }
   FORCE_INLINE void set(const XYval<T> pxy, const T pz)           { x = pxy.x; y = pxy.y; z = pz; }
+  FORCE_INLINE void set(const T (&arr)[XY])                       { x = arr[0]; y = arr[1]; }
+  FORCE_INLINE void set(const T (&arr)[XYZ])                      { x = arr[0]; y = arr[1]; z = arr[2]; }
+  FORCE_INLINE void set(const T (&arr)[XYZE])                     { x = arr[0]; y = arr[1]; z = arr[2]; }
   FORCE_INLINE void reset()                                       { x = y = z = 0; }
   FORCE_INLINE T magnitude()                                const { return (T)sqrtf(x*x + y*y + z*z); }
   FORCE_INLINE operator T* ()                                     { return pos; }
@@ -301,6 +295,8 @@ struct XYZval {
   FORCE_INLINE XYZval<int16_t>   asInt()                    const { return { int16_t(x), int16_t(y), int16_t(z) }; }
   FORCE_INLINE XYZval<int32_t>  asLong()                          { return { int32_t(x), int32_t(y), int32_t(z) }; }
   FORCE_INLINE XYZval<int32_t>  asLong()                    const { return { int32_t(x), int32_t(y), int32_t(z) }; }
+  FORCE_INLINE XYZval<int32_t>  ROUNDL()                          { return { int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)) }; }
+  FORCE_INLINE XYZval<int32_t>  ROUNDL()                    const { return { int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)) }; }
   FORCE_INLINE XYZval<float>   asFloat()                          { return {   float(x),   float(y),   float(z) }; }
   FORCE_INLINE XYZval<float>   asFloat()                    const { return {   float(x),   float(y),   float(z) }; }
   FORCE_INLINE XYZval<float> reciprocal()                   const { return {  _RECIP(x),  _RECIP(y),  _RECIP(z) }; }
@@ -338,14 +334,14 @@ struct XYZval {
   FORCE_INLINE XYZval<T>  operator* (const XYZEval<T> &rs)        { XYZval<T> ls = *this; ls.x *= rs.x; ls.y *= rs.y; ls.z *= rs.z; return ls; }
   FORCE_INLINE XYZval<T>  operator/ (const XYZEval<T> &rs)  const { XYZval<T> ls = *this; ls.x /= rs.x; ls.y /= rs.y; ls.z /= rs.z; return ls; }
   FORCE_INLINE XYZval<T>  operator/ (const XYZEval<T> &rs)        { XYZval<T> ls = *this; ls.x /= rs.x; ls.y /= rs.y; ls.z /= rs.z; return ls; }
-  FORCE_INLINE XYZval<T>  operator* (const float &v)        const { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= z;    return ls; }
-  FORCE_INLINE XYZval<T>  operator* (const float &v)              { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= z;    return ls; }
-  FORCE_INLINE XYZval<T>  operator* (const int &v)          const { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= z;    return ls; }
-  FORCE_INLINE XYZval<T>  operator* (const int &v)                { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= z;    return ls; }
-  FORCE_INLINE XYZval<T>  operator/ (const float &v)        const { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= z;    return ls; }
-  FORCE_INLINE XYZval<T>  operator/ (const float &v)              { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= z;    return ls; }
-  FORCE_INLINE XYZval<T>  operator/ (const int &v)          const { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= z;    return ls; }
-  FORCE_INLINE XYZval<T>  operator/ (const int &v)                { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= z;    return ls; }
+  FORCE_INLINE XYZval<T>  operator* (const float &v)        const { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= v;    return ls; }
+  FORCE_INLINE XYZval<T>  operator* (const float &v)              { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= v;    return ls; }
+  FORCE_INLINE XYZval<T>  operator* (const int &v)          const { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= v;    return ls; }
+  FORCE_INLINE XYZval<T>  operator* (const int &v)                { XYZval<T> ls = *this; ls.x *= v;    ls.y *= v;    ls.z *= v;    return ls; }
+  FORCE_INLINE XYZval<T>  operator/ (const float &v)        const { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= v;    return ls; }
+  FORCE_INLINE XYZval<T>  operator/ (const float &v)              { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= v;    return ls; }
+  FORCE_INLINE XYZval<T>  operator/ (const int &v)          const { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= v;    return ls; }
+  FORCE_INLINE XYZval<T>  operator/ (const int &v)                { XYZval<T> ls = *this; ls.x /= v;    ls.y /= v;    ls.z /= v;    return ls; }
   FORCE_INLINE XYZval<T>  operator>>(const int &v)          const { XYZval<T> ls = *this; _RS(ls.x); _RS(ls.y); _RS(ls.z); return ls; }
   FORCE_INLINE XYZval<T>  operator>>(const int &v)                { XYZval<T> ls = *this; _RS(ls.x); _RS(ls.y); _RS(ls.z); return ls; }
   FORCE_INLINE XYZval<T>  operator<<(const int &v)          const { XYZval<T> ls = *this; _LS(ls.x); _LS(ls.y); _LS(ls.z); return ls; }
@@ -394,22 +390,27 @@ struct XYZEval {
   FORCE_INLINE T magnitude()                                      const { return (T)sqrtf(x*x + y*y + z*z + e*e); }
   FORCE_INLINE operator T* ()                                           { return pos; }
   FORCE_INLINE operator bool()                                          { return e || z || x || y; }
-  FORCE_INLINE void set(const T px)                                     { x = px;                                        }
-  FORCE_INLINE void set(const T px, const T py)                         { x = px;     y = py;                            }
-  FORCE_INLINE void set(const T px, const T py, const T pz)             { x = px;     y = py;     z = pz;                }
-  FORCE_INLINE void set(const T px, const T py, const T pz, const T pe) { x = px;     y = py;     z = pz;     e = pe;    }
-  FORCE_INLINE void set(const XYval<T> pxy)                             { x = pxy.x;  y = pxy.y;                         }
-  FORCE_INLINE void set(const XYval<T> pxy, const T pz)                 { x = pxy.x;  y = pxy.y;  z = pz;                }
-  FORCE_INLINE void set(const XYZval<T> pxyz)                           { x = pxyz.x; y = pxyz.y; z = pxyz.z;            }
-  FORCE_INLINE void set(const XYval<T> pxy, const T pz, const T pe)     { x = pxy.x;  y = pxy.y;  z = pz;     e = pe;    }
-  FORCE_INLINE void set(const XYval<T> pxy, const XYval<T> pze)         { x = pxy.x;  y = pxy.y;  z = pze.z;  e = pze.e; }
-  FORCE_INLINE void set(const XYZval<T> pxyz, const T pe)               { x = pxyz.x; y = pxyz.y; z = pxyz.z; e = pe;    }
+  FORCE_INLINE void set(const T px)                                     { x = px;                                         }
+  FORCE_INLINE void set(const T px, const T py)                         { x = px;     y = py;                             }
+  FORCE_INLINE void set(const T px, const T py, const T pz)             { x = px;     y = py;     z = pz;                 }
+  FORCE_INLINE void set(const T px, const T py, const T pz, const T pe) { x = px;     y = py;     z = pz;     e = pe;     }
+  FORCE_INLINE void set(const XYval<T> pxy)                             { x = pxy.x;  y = pxy.y;                          }
+  FORCE_INLINE void set(const XYval<T> pxy, const T pz)                 { x = pxy.x;  y = pxy.y;  z = pz;                 }
+  FORCE_INLINE void set(const XYZval<T> pxyz)                           { x = pxyz.x; y = pxyz.y; z = pxyz.z;             }
+  FORCE_INLINE void set(const XYval<T> pxy, const T pz, const T pe)     { x = pxy.x;  y = pxy.y;  z = pz;     e = pe;     }
+  FORCE_INLINE void set(const XYval<T> pxy, const XYval<T> pze)         { x = pxy.x;  y = pxy.y;  z = pze.z;  e = pze.e;  }
+  FORCE_INLINE void set(const XYZval<T> pxyz, const T pe)               { x = pxyz.x; y = pxyz.y; z = pxyz.z; e = pe;     }
+  FORCE_INLINE void set(const T (&arr)[XY])                             { x = arr[0]; y = arr[1]; }
+  FORCE_INLINE void set(const T (&arr)[XYZ])                            { x = arr[0]; y = arr[1]; z = arr[2]; }
+  FORCE_INLINE void set(const T (&arr)[XYZE])                           { x = arr[0]; y = arr[1]; z = arr[2]; e = arr[3]; }
   FORCE_INLINE XYZEval<T>          copy()                         const { return *this; }
   FORCE_INLINE XYZEval<T>           ABS()                         const { return { T(_ABS(x)), T(_ABS(y)), T(_ABS(z)), T(_ABS(e)) }; }
   FORCE_INLINE XYZEval<int16_t>   asInt()                               { return { int16_t(x), int16_t(y), int16_t(z), int16_t(e) }; }
   FORCE_INLINE XYZEval<int16_t>   asInt()                         const { return { int16_t(x), int16_t(y), int16_t(z), int16_t(e) }; }
-  FORCE_INLINE XYZEval<int32_t>  asLong()                         const { return { int32_t(x), int32_t(y), int32_t(z), int32_t(e) }; }
   FORCE_INLINE XYZEval<int32_t>  asLong()                               { return { int32_t(x), int32_t(y), int32_t(z), int32_t(e) }; }
+  FORCE_INLINE XYZEval<int32_t>  asLong()                         const { return { int32_t(x), int32_t(y), int32_t(z), int32_t(e) }; }
+  FORCE_INLINE XYZEval<int32_t>  ROUNDL()                               { return { int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(e)) }; }
+  FORCE_INLINE XYZEval<int32_t>  ROUNDL()                         const { return { int32_t(LROUND(x)), int32_t(LROUND(y)), int32_t(LROUND(z)), int32_t(LROUND(e)) }; }
   FORCE_INLINE XYZEval<float>   asFloat()                               { return {   float(x),   float(y),   float(z),   float(e) }; }
   FORCE_INLINE XYZEval<float>   asFloat()                         const { return {   float(x),   float(y),   float(z),   float(e) }; }
   FORCE_INLINE XYZEval<float> reciprocal()                        const { return {  _RECIP(x),  _RECIP(y),  _RECIP(z),  _RECIP(e) }; }

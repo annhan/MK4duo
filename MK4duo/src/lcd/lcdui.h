@@ -27,7 +27,7 @@
 #define LCD_MESSAGEPGM(x)         LCD_MESSAGEPGM_P(GET_TEXT(x))
 #define LCD_ALERTMESSAGEPGM(x)    LCD_ALERTMESSAGEPGM_P(GET_TEXT(x))
 
-#define LCD_HAS_WAIT_FOR_MOVE     MECH(DELTA) || (ENABLED(LCD_BED_LEVELING) && (HAS_PROBE_MANUALLY || ENABLED(MESH_BED_LEVELING)))
+#define LCD_HAS_WAIT_FOR_MOVE     MECH(DELTA) || HAS_PROBE_MANUALLY || ENABLED(MESH_BED_LEVELING)
 
 #if ENABLED(LCD_PROGRESS_BAR) || ENABLED(SHOW_BOOTSCREEN)
   #define LCD_SET_CHARSET(C)      set_custom_characters(C)
@@ -150,7 +150,7 @@ class LcdUI {
 
     #endif
 
-    #if HAS_LCD_MENU && (ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION))
+    #if HAS_LCD_MENU && (HAS_UBL || ENABLED(G26_MESH_VALIDATION))
       static bool external_control;
     #else
       static constexpr bool external_control = false;
@@ -185,13 +185,17 @@ class LcdUI {
   private: /** Private Parameters */
 
     #if HAS_LCD
+
+      static short_timer_t next_lcd_update_timer;
+
       #if HAS_LCD_MENU
-        #if LCD_TIMEOUT_TO_STATUS
+        #if LCD_TIMEOUT_TO_STATUS > 0
           static bool defer_return_to_status;
         #else
           static constexpr bool defer_return_to_status = false;
         #endif
       #endif
+
     #endif
 
   public: /** Public Function */
@@ -227,9 +231,9 @@ class LcdUI {
 
     static void clear_lcd();
 
-    static void set_status(const char* const message, const bool persist=false);
-    static void set_status_P(PGM_P const message, int8_t level=0);
-    static void status_printf_P(const uint8_t level, PGM_P const message, ...);
+    #if HAS_SD_SUPPORT
+      static void sd_changed(const uint8_t old_status, const uint8_t status);
+    #endif
 
     #if HAS_LCD
 
@@ -299,6 +303,9 @@ class LcdUI {
       static bool get_blink(uint8_t moltiplicator=1);
       static void kill_screen(PGM_P const lcd_msg);
       static void draw_kill_screen();
+      static void set_status(const char * const message, const bool persist=false);
+      static void set_status_P(PGM_P const message, int8_t level=0);
+      static void status_printf_P(const uint8_t level, PGM_P const message, ...);
       static void reset_status();
 
       static void pause_print();
@@ -307,6 +314,11 @@ class LcdUI {
 
     #else // NO LCD
 
+      // Send status to host as a notification
+      static void set_status(const char * message, const bool=false);
+      static void set_status_P(PGM_P message, const int8_t=0);
+      static void status_printf_P(const uint8_t, PGM_P const message, ...);
+
       static inline void init() {}
       static inline void update() {}
       static inline void set_alert_status_P(PGM_P message) { UNUSED(message); }
@@ -314,7 +326,8 @@ class LcdUI {
       static inline void return_to_status() {}
       static inline void reset_status() {}
       static inline void reset_alert_level() {}
-      static constexpr bool has_status() { return false; }
+      static inline bool has_status() { return false; }
+      static inline bool detected() { return true; }
 
     #endif
 
@@ -349,7 +362,7 @@ class LcdUI {
       static void draw_select_screen_prompt(PGM_P const pref, const char * const string=nullptr, PGM_P const suff=nullptr);
 
       static inline void defer_status_screen(const bool defer=true) {
-        #if LCD_TIMEOUT_TO_STATUS
+        #if LCD_TIMEOUT_TO_STATUS > 0
           defer_return_to_status = defer;
         #else
           UNUSED(defer);
@@ -369,7 +382,7 @@ class LcdUI {
         static inline void chirp() { sound.playtone(LCD_FEEDBACK_FREQUENCY_DURATION_MS, LCD_FEEDBACK_FREQUENCY_HZ); }
       #endif
 
-      #if ENABLED(AUTO_BED_LEVELING_UBL)
+      #if HAS_UBL
         static void ubl_plot(const uint8_t x_plot, const uint8_t y_plot);
       #endif
 
@@ -380,7 +393,7 @@ class LcdUI {
 
     #endif
 
-    #if HAS_LCD_MENU && (ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION))
+    #if HAS_LCD_MENU && (HAS_UBL || ENABLED(G26_MESH_VALIDATION))
       FORCE_INLINE static void capture() { external_control = true; }
       FORCE_INLINE static void release() { external_control = false; }
     #endif
@@ -395,7 +408,7 @@ class LcdUI {
       #endif
       static void update_buttons();
       static bool button_pressed();
-      #if ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION)
+      #if HAS_UBL || ENABLED(G26_MESH_VALIDATION)
         static void wait_for_release();
       #endif
 
@@ -424,10 +437,6 @@ class LcdUI {
     #endif
 
   private: /** Public Function */
-
-    #if HAS_LCD_MENU
-      static void _synchronize();
-    #endif
 
     #if HAS_SPI_LCD
       static void draw_status_screen();

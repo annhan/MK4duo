@@ -182,11 +182,11 @@ void HAL::hwSetup() {
 // Print apparent cause of start/restart
 void HAL::showStartReason() {
   switch ((RSTC->RSTC_SR >> 8) & 0x07) {
-    case 0: SERIAL_EM(MSG_HOST_POWERUP); break;
-    case 1: SERIAL_EM(MSG_HOST_BROWNOUT_RESET); break;
-    case 2: SERIAL_EM(MSG_HOST_WATCHDOG_RESET); break;
-    case 3: SERIAL_EM(MSG_HOST_SOFTWARE_RESET); break;
-    case 4: SERIAL_EM(MSG_HOST_EXTERNAL_RESET); break;
+    case 0: SERIAL_EM(STR_POWERUP); break;
+    case 1: SERIAL_EM(STR_BROWNOUT_RESET); break;
+    case 2: SERIAL_EM(STR_WATCHDOG_RESET); break;
+    case 3: SERIAL_EM(STR_SOFTWARE_RESET); break;
+    case 4: SERIAL_EM(STR_EXTERNAL_RESET); break;
     default: break;
   }
 }
@@ -560,11 +560,11 @@ void HAL::Tick() {
   // Fans set output PWM
   fanManager.set_output_pwm();
 
-  // Event 100 ms
+  // Event every 100 ms
   if (cycle_100_timer.expired(100)) tempManager.spin();
 
-  // Event 1.0 Second
-  if (cycle_1s_timer.expired(1000)) printer.check_periodical_actions();
+  // Event every second
+  if (cycle_1s_timer.expired(SECOND_TO_MILLIS(1))) printer.check_periodical_actions();
 
   // Read analog or SPI values
   if (adc_get_status(ADC)) { // conversion finished?

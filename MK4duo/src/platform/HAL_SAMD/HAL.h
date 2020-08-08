@@ -227,7 +227,7 @@ class HAL {
     }
 
     FORCE_INLINE static void delayNanoseconds(const uint32_t delayNs) {
-      hal_delayMicroseconds(delayNs * 1000);
+      hal_delayMicroseconds(delayNs * 1000UL);
     }
 
     FORCE_INLINE static void delayMicroseconds(uint32_t usec) { // usec += 3;
@@ -310,12 +310,5 @@ uint8_t spiReceive(uint32_t chan);
 
 // Tone for due
 void tone(const pin_t t_pin, const uint16_t frequency, const uint16_t duration);
-
-// EEPROM
-uint8_t eeprom_read_byte(uint8_t* pos);
-void eeprom_read_block(void* pos, const void* eeprom_address, size_t n);
-void eeprom_write_byte(uint8_t* pos, uint8_t value);
-void eeprom_update_block(const void* pos, void* eeprom_address, size_t n);
-
 
 #endif // _HAL_SAMD_H

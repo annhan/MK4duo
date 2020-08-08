@@ -45,18 +45,14 @@
 
 #include "nextion_gfx.h"
 
-#define NEXTION_LCD_FIRMWARE_VERSION 131
+#define NEXTION_LCD_FIRMWARE_VERSION 132
 
 NextionLCD nexlcd;
 
 /** LcdUI Parameters */
 char    LcdUI::status_message[NEXTION_MAX_MESSAGE_LENGTH + 1];
-uint8_t LcdUI::alert_level = 0,
-        LcdUI::lang = 0;
 
 #if HAS_LCD_MENU
-
-  extern bool no_reentry; // Flag to prevent recursion into menu handlers
 
   int8_t manual_move_axis = (int8_t)NO_AXIS;
   short_timer_t manual_move_timer;
@@ -75,10 +71,6 @@ uint8_t LcdUI::alert_level = 0,
 
   int8_t        LcdUI::manual_move_e_index = 0;
 
-  #if LCD_HAS_WAIT_FOR_MOVE
-    bool LcdUI::wait_for_move = false;
-  #endif
-
   #if HAS_SD_SUPPORT && ENABLED(SCROLL_LONG_FILENAMES)
     uint8_t LcdUI::filename_scroll_pos, LcdUI::filename_scroll_max;
   #endif
@@ -89,7 +81,7 @@ uint8_t LcdUI::alert_level = 0,
 
   bool LcdUI::lcd_clicked = false;
 
-  #if LCD_TIMEOUT_TO_STATUS
+  #if LCD_TIMEOUT_TO_STATUS > 0
     bool LcdUI::defer_return_to_status;
   #endif
 
@@ -97,7 +89,7 @@ uint8_t LcdUI::alert_level = 0,
     bool LcdUI::processing_manual_move = false;
   #endif
 
-  #if ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION)
+  #if HAS_UBL || ENABLED(G26_MESH_VALIDATION)
     bool LcdUI::external_control; // = false
   #endif
 
@@ -111,13 +103,9 @@ bool    NextionLCD::NextionON           = false;
 
 uint8_t NextionLCD::PageID              = 0;
 
-#if HAS_SD_SUPPORT
-  uint8_t NextionLCD::lcd_sd_status     = 2; // UNKNOWN
-#endif
-
 #if HAS_LCD_MENU
   bool  NextionLCD::line_encoder_touch  = false;
-  #if LCD_TIMEOUT_TO_STATUS
+  #if LCD_TIMEOUT_TO_STATUS > 0
     short_timer_t NextionLCD::return_to_status_timer(millis());
   #endif
 #endif
@@ -267,29 +255,41 @@ NexObject *nex_listen_list[] =
 /** Public Function */
 void NextionLCD::init() {
 
+  const uint32_t baudrate_array[] = { 115200, 57600, 38400, 19200, 9600, 4800, 2400 };
+
   char cmd[NEXTION_BUFFER_SIZE] = { 0 };
 
-  #if ENABLED(NEXTION_CONNECT_DEBUG)
-    SERIAL_EM(" NEXTION connected at 9600 baud, ready");
-  #endif
+  for (uint8_t i = 0; i < COUNT(baudrate_array); i++) {
 
-  for (uint8_t i = 0; i < 10; i++) {
-    ZERO(cmd);
-    nexSerial.begin(9600);  // Try at 9600
-    if (getConnect(cmd)) {
+    // Attempt 1 second
+    HAL::delayMilliseconds(SECOND_TO_MILLIS(1));
+
+    NextionON = getConnect(baudrate_array[i], cmd);
+    if (NextionON) {
+
       #if ENABLED(NEXTION_CONNECT_DEBUG)
-        SERIAL_EM(" NEXTION connected at 9600 baud, changing baudrate");
+        SERIAL_SMV(ECHO, "NEXTION connected at ", baudrate_array[i]);
+        SERIAL_EM(" baud.");
       #endif
+
+      if (baudrate_array[i] == NEXTION_BAUDRATE) break;
+
+      // Set NEXTION_BAUDRATE
       sendCommandPGM(PSTR("baud=" STRINGIFY(NEXTION_BAUDRATE)));
-      HAL::delayMilliseconds(100);
+      const uint16_t delay = uint16_t(1000000 / (NEXTION_BAUDRATE)) + 30UL;
+      HAL::delayMilliseconds(delay);
+
+      // Try at NEXTION_BAUDRATE
+      NextionON = getConnect(NEXTION_BAUDRATE, cmd);
+      if (NextionON) {
+        #if ENABLED(NEXTION_CONNECT_DEBUG)
+          SERIAL_SMV(ECHO, "NEXTION connected at ", NEXTION_BAUDRATE);
+          SERIAL_EM(" baud.");
+        #endif
+        break;
+      }
     }
-    nexSerial.end();
-    HAL::delayMilliseconds(100);
-    nexSerial.begin(NEXTION_BAUDRATE);  // Try at NEXTION_BAUDRATE
-    NextionON = getConnect(cmd);
-    if (NextionON) break;
-    nexSerial.end();
-    HAL::delayMilliseconds(1000);
+
   }
 
   if (!NextionON) {
@@ -297,6 +297,13 @@ void NextionLCD::init() {
     return;
   }
   else {
+
+    // Set Page 0
+    sendCommandPGM(PSTR("page pg0"));
+
+    // Clear buffer RX
+    clear_rx();
+
     // Read Version Firmware Nextion
     sendCommandPGM(PSTR("get version.val"));
     const uint16_t nextion_version = recvRetNumber();
@@ -307,7 +314,7 @@ void NextionLCD::init() {
     // Start timer for logo anim
     sendCommandPGM(PSTR("tm0.en=1"));
 
-    SERIAL_MSG("Nextion");
+    SERIAL_SM(ECHO, " Nextion");
 
     // Get Model
     if (strstr_P(cmd, PSTR("3224"))) {       // Model 2.4" or 2.8" Normal or Enhanced
@@ -354,7 +361,7 @@ void NextionLCD::init() {
 
     set_status_page();
 
-    #if LCD_TIMEOUT_TO_STATUS
+    #if LCD_TIMEOUT_TO_STATUS > 0
       return_to_status_timer.start();
     #endif
 
@@ -879,15 +886,16 @@ void NextionLCD::set_status_page() {
 void NextionLCD::coordtoLCD() {
   char* valuetemp;
   char cmd[NEXTION_BUFFER_SIZE] = { 0 };
+  const xyz_pos_t lpos = mechanics.position.asLogical();
 
   if (PageID == 2) {
-    setText(LcdX, ftostr41sign(LOGICAL_X_POSITION(mechanics.position.x)));
-    setText(LcdY, ftostr41sign(LOGICAL_Y_POSITION(mechanics.position.y)));
-    setText(LcdZ, ftostr41sign(FIXFLOAT(LOGICAL_Z_POSITION(mechanics.position.z))));
+    setText(LcdX, ftostr41sign(lpos.x));
+    setText(LcdY, ftostr41sign(lpos.y));
+    setText(LcdZ, ftostr41sign(FIXFLOAT(lpos.z)));
   }
   else if (PageID == 4) {
     if (mechanics.home_flag.XHomed) {
-      valuetemp = ftostr4sign(LOGICAL_X_POSITION(mechanics.position.x));
+      valuetemp = ftostr4sign(lpos.x);
       strcat(cmd, "X");
       strcat(cmd, valuetemp);
     }
@@ -895,7 +903,7 @@ void NextionLCD::coordtoLCD() {
       strcat(cmd, "?");
 
     if (mechanics.home_flag.YHomed) {
-      valuetemp = ftostr4sign(LOGICAL_Y_POSITION(mechanics.position.y));
+      valuetemp = ftostr4sign(lpos.y);
       strcat(cmd, " Y");
       strcat(cmd, valuetemp);
     }
@@ -903,7 +911,7 @@ void NextionLCD::coordtoLCD() {
       strcat(cmd, " ?");
 
     if (mechanics.home_flag.ZHomed) {
-      valuetemp = ftostr52sp(FIXFLOAT(LOGICAL_Z_POSITION(mechanics.position.z)));
+      valuetemp = ftostr52sp(FIXFLOAT(lpos.z));
       strcat(cmd, " Z");
       strcat(cmd, valuetemp);
     }
@@ -983,7 +991,7 @@ void NextionLCD::PopCallback(NexObject *nexobject) {
       }
     }
 
-    #if LCD_TIMEOUT_TO_STATUS
+    #if LCD_TIMEOUT_TO_STATUS > 0
       return_to_status_timer.start();
     #endif
 
@@ -1014,17 +1022,25 @@ uint16_t NextionLCD::recvRetNumber() {
 
 }
 
-bool NextionLCD::getConnect(char* buffer) {
+bool NextionLCD::getConnect(const uint32_t baudrate, char* buffer) {
+
+  ZERO(buffer);
+
+  nexSerial.end();
   HAL::delayMilliseconds(100);
+  nexSerial.begin(baudrate);
+  HAL::delayMilliseconds(100);
+
   sendCommand("");
   HAL::delayMilliseconds(100);
+  clear_rx();
   sendCommandPGM(PSTR("connect"));
   HAL::delayMilliseconds(100);
 
   String temp = String("");
 
   #if ENABLED(NEXTION_CONNECT_DEBUG)
-    SERIAL_MSG(" NEXTION Debug Connect received:");
+    SERIAL_SM(ECHO, "NEXTION Debug Connect received:");
   #endif
 
   while (nexSerial.available()) {
@@ -1273,7 +1289,7 @@ void LcdUI::init() { nexlcd.init(); }
 bool LcdUI::get_blink(uint8_t moltiplicator/*=1*/) {
   static uint8_t blink = 0;
   static short_timer_t next_blink_timer(millis());
-  if (next_blink_timer.expired(moltiplicator * 1000)) blink ^= 0xFF;
+  if (next_blink_timer.expired(SECOND_TO_MILLIS(moltiplicator))) blink ^= 0xFF;
   return blink != 0;
 }
 
@@ -1283,13 +1299,11 @@ void LcdUI::kill_screen(PGM_P lcd_msg) {
 
 void LcdUI::update() {
 
-  static short_timer_t next_lcd_update_timer(millis());
-
   if (!nexlcd.NextionON) return;
 
   nexlcd.read_serial();
 
-  #if ENABLED(AUTO_BED_LEVELING_UBL)
+  #if HAS_UBL
     if (lcdui.external_control)
       ubl.encoder_diff = lcdui.encoderPosition;
   #endif
@@ -1299,35 +1313,6 @@ void LcdUI::update() {
     manage_manual_move();
   #endif
 
-  #if HAS_SD_SUPPORT
-
-    const uint8_t sd_status = (uint8_t)IS_SD_INSERTED();
-    if (sd_status != nexlcd.lcd_sd_status && detected()) {
-
-      uint8_t old_sd_status = nexlcd.lcd_sd_status; // prevent re-entry to this block!
-      nexlcd.lcd_sd_status = sd_status;
-
-      if (sd_status) {
-        HAL::delayMilliseconds(500);  // Some boards need a delay to get settled
-        card.mount();
-        if (old_sd_status == 2)
-          card.beginautostart();  // Initial boot
-        else
-          set_status_P(GET_TEXT(MSG_SD_INSERTED));
-      }
-      #if PIN_EXISTS(SD_DETECT)
-        else {
-          card.unmount();
-          if (nexlcd.lcd_sd_status != 2) set_status_P(GET_TEXT(MSG_SD_REMOVED));
-        }
-      #endif
-
-      refresh();
-      next_lcd_update_timer.start();
-    }
-
-  #endif // HAS_SD_SUPPORT
-
   if (next_lcd_update_timer.expired(LCD_UPDATE_INTERVAL))
     nexlcd.status_screen_update();
 
@@ -1335,7 +1320,7 @@ void LcdUI::update() {
 
     if (nexlcd.PageID == 11) {
 
-      #if LCD_TIMEOUT_TO_STATUS
+      #if LCD_TIMEOUT_TO_STATUS > 0
         if (defer_return_to_status)
           nexlcd.return_to_status_timer.start();
         else if (nexlcd.return_to_status_timer.expired(LCD_TIMEOUT_TO_STATUS))
@@ -1369,7 +1354,7 @@ void LcdUI::update() {
 
     }
     else {
-      #if LCD_TIMEOUT_TO_STATUS
+      #if LCD_TIMEOUT_TO_STATUS > 0
         nexlcd.return_to_status_timer = millis();
       #endif
     }
@@ -1396,8 +1381,9 @@ void LcdUI::set_alert_status_P(PGM_P const message) {
   #endif
 }
 
-void LcdUI::set_status(const char* const message, const bool) {
+void LcdUI::set_status(const char * const message, const bool) {
   if (alert_level || !nexlcd.NextionON) return;
+  host_action.action_notify(message);
   strncpy(status_message, message, NEXTION_MAX_MESSAGE_LENGTH);
   nexlcd.setText(LcdStatus, status_message);
 }
@@ -1406,6 +1392,8 @@ void LcdUI::set_status_P(PGM_P const message, int8_t level/*=0*/) {
   if (level < 0) level = alert_level = 0;
   if (level < alert_level || !nexlcd.NextionON) return;
   alert_level = level;
+
+  host_action.action_notify_P(message);
 
   // Get a pointer to the null terminator
   PGM_P pend = message + strlen_P(message);
@@ -1429,7 +1417,7 @@ void LcdUI::status_printf_P(const uint8_t level, PGM_P const message, ...) {
   alert_level = level;
   va_list args;
   va_start(args, message);
-  vsnprintf(status_message, NEXTION_MAX_MESSAGE_LENGTH, message, args);
+  vsnprintf_P(status_message, NEXTION_MAX_MESSAGE_LENGTH, message, args);
   va_end(args);
   nexlcd.setText(LcdStatus, status_message);
 }
@@ -1491,7 +1479,8 @@ bool LcdUI::has_status() { return (status_message[0] != '\0'); }
 void LcdUI::pause_print() {
 
   #if HAS_LCD_MENU
-    synchronize(GET_TEXT(MSG_PAUSE_PRINT));
+    synchronize(GET_TEXT(MSG_PAUSING));
+    defer_status_screen();
   #endif
 
   host_action.prompt_open(PROMPT_PAUSE_RESUME, PSTR("LCD Pause"), PSTR("Resume"));
@@ -1499,7 +1488,7 @@ void LcdUI::pause_print() {
   set_status_P(print_paused);
 
   #if ENABLED(PARK_HEAD_ON_PAUSE)
-    lcd_pause_show_message(PAUSE_MESSAGE_PAUSING, PAUSE_MODE_PAUSE_PRINT);  // Show message immediately to let user know about pause in progress
+    lcd_pause_show_message(PAUSE_MESSAGE_PARKING, PAUSE_MODE_PAUSE_PRINT);  // Show message immediately to let user know about pause in progress
     commands.inject_P(PSTR("M25\nM24"));
   #elif HAS_SD_SUPPORT
     commands.inject_P(PSTR("M25"));
@@ -1529,7 +1518,7 @@ void LcdUI::stop_print() {
     if (IS_SD_PRINTING()) card.setAbortSDprinting(true);
   #endif
   host_action.cancel();
-  host_action.prompt_open(PROMPT_INFO, PSTR("LCD Aborted"), PSTR("Dismiss"));
+  host_action.prompt_open(PROMPT_INFO, PSTR("LCD Aborted"), DISMISS_BTN);
   print_job_counter.stop();
   set_status_P(GET_TEXT(MSG_PRINT_ABORTED));
   #if HAS_LCD_MENU
@@ -1537,11 +1526,11 @@ void LcdUI::stop_print() {
   #endif
 }
 
-#if ENABLED(AUTO_BED_LEVELING_UBL)
+#if HAS_UBL
   void LcdUI::ubl_plot(const uint8_t x_plot, const uint8_t y_plot) {}
 #endif
 
-#if ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION)
+#if HAS_UBL || ENABLED(G26_MESH_VALIDATION)
   void LcdUI::wait_for_release() { HAL::delayMilliseconds(50); }
 #endif
 

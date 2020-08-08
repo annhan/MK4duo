@@ -174,6 +174,8 @@ class TMCStorage {
         TMC2208Stepper::microsteps(ms);
       }
 
+      inline uint16_t get_microstep_counter() { return TMC2208Stepper::MSCNT(); }
+
       inline void refresh_stepping_mode()   { this->en_spreadCycle(!this->stealthChop_enabled); }
       inline bool get_stealthChop_status()  { return !this->en_spreadCycle(); }
 
@@ -249,6 +251,8 @@ class TMCStorage {
         TMC2660Stepper::microsteps(ms);
       }
 
+      inline uint16_t get_microstep_counter() { return TMC2660Stepper::mstep(); }
+
       #if USE_SENSORLESS
         inline int16_t homing_threshold() { return TMC2660Stepper::sgt(); }
         void homing_threshold(int16_t sgt_val) {
@@ -314,6 +318,8 @@ class TMCStorage {
         this->val_ms = ms;
         TMC_MODEL_LIB::microsteps(ms);
       }
+
+      inline uint16_t get_microstep_counter() { return TMC_MODEL_LIB::MSCNT(); }
 
       inline void refresh_stepping_mode()   { this->en_pwm_mode(this->stealthChop_enabled); }
       inline bool get_stealthChop_status()  { return this->en_pwm_mode(); }
@@ -404,6 +410,8 @@ class TMC_Manager {
     static void restore();
 
     static void test_connection(const bool test_x, const bool test_y, const bool test_z, const bool test_e);
+
+    static void go_to_homing_phase(const AxisEnum axis, const feedrate_t fr_mm_s);
 
     #if ENABLED(MONITOR_DRIVER_STATUS)
       static void monitor_drivers();

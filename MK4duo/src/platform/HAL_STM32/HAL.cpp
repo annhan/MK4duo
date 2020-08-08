@@ -84,10 +84,10 @@ void HAL::hwSetup() {
 
 // Print apparent cause of start/restart
 void HAL::showStartReason() {
-  if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST)  != RESET) SERIAL_EM(MSG_HOST_WATCHDOG_RESET);
-  if (__HAL_RCC_GET_FLAG(RCC_FLAG_SFTRST)   != RESET) SERIAL_EM(MSG_HOST_SOFTWARE_RESET);
-  if (__HAL_RCC_GET_FLAG(RCC_FLAG_PINRST)   != RESET) SERIAL_EM(MSG_HOST_EXTERNAL_RESET);
-  if (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST)   != RESET) SERIAL_EM(MSG_HOST_POWERUP);
+  if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST)  != RESET) SERIAL_EM(STR_WATCHDOG_RESET);
+  if (__HAL_RCC_GET_FLAG(RCC_FLAG_SFTRST)   != RESET) SERIAL_EM(STR_SOFTWARE_RESET);
+  if (__HAL_RCC_GET_FLAG(RCC_FLAG_PINRST)   != RESET) SERIAL_EM(STR_EXTERNAL_RESET);
+  if (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST)   != RESET) SERIAL_EM(STR_POWERUP);
   __HAL_RCC_CLEAR_RESET_FLAGS();
 }
 
@@ -194,11 +194,11 @@ void HAL::Tick() {
   // Fans set output PWM
   fanManager.set_output_pwm();
 
-  // Event 100 ms
+  // Event every 100 ms
   if (cycle_100_timer.expired(100)) tempManager.spin();
 
-  // Event 1.0 Second
-  if (cycle_1s_timer.expired(1000)) printer.check_periodical_actions();
+  // Event every second
+  if (cycle_1s_timer.expired(SECOND_TO_MILLIS(1))) printer.check_periodical_actions();
 
   #if HAS_HOTENDS
     LOOP_HOTEND() {
@@ -291,7 +291,7 @@ pin_t HAL::analog_value_pin() {
 // This intercepts the 1ms system tick.
 extern "C" void HAL_SYSTICK_Callback(void) { HAL::Tick(); }
 
-void Step_Handler(HardwareTimer*) { stepper.Step(); }
+void Step_Handler() { stepper.Step(); }
 
 
 #endif // ARDUINO_ARCH_STM32

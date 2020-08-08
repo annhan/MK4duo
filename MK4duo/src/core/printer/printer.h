@@ -142,8 +142,19 @@ class Printer {
       static void finish_sd_printing();
     #endif
 
+    #if HAS_RESUME_CONTINUE
+      void wait_for_user_response(millis_l ms=0, const bool no_sleep=false);
+    #endif
+
     #if HAS_SUICIDE
       static void suicide();
+    #endif
+
+    #if HAS_KILL
+      #ifndef KILL_PIN_STATE
+        #define KILL_PIN_STATE LOW
+      #endif
+      inline static bool kill_state() { return READ(KILL_PIN) == KILL_PIN_STATE; }
     #endif
 
     FORCE_INLINE static void reset_move_timer() { move_timer.start(); }

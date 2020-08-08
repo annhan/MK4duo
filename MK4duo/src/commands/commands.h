@@ -63,6 +63,17 @@ class Commands {
     static Circular_Queue<gcode_t, BUFSIZE> buffer_ring;
 
     /**
+     * Next Injected Command (PROGMEM) pointer. (nullptr == empty)
+     * Internal commands are enqueued ahead of serial / SD commands.
+     */
+    static PGM_P injected_cmd_P;
+
+    /**
+     * Injected Commands (SRAM)
+     */
+    static char injected_cmd[64];
+
+    /**
      * GCode line number handling. Hosts may opt to include line numbers when
      * sending commands to MK4duo, and lines will be checked for sequentiality.
      * M110 N<int> sets the current line number.
@@ -75,13 +86,6 @@ class Commands {
 
     static int serial_count[NUM_SERIAL];
 
-    /**
-     * Next Injected Command pointer. Nullptr if no commands are being injected.
-     * Used by MK4duo internally to ensure that commands initiated from within
-     * are enqueued ahead of any pending serial or sd card
-     */
-    static PGM_P injected_commands_P;
-
   public: /** Public Function */
 
     /**
@@ -92,7 +96,7 @@ class Commands {
 
     /**
      * Add to the buffer ring the next command from:
-     *  - The command-injection queue (injected_commands_P)
+     *  - The command-injection queue (injected_cmd_P)
      *  - The active serial input (usually USB)
      *  - The SD card file being actively printed
      */
@@ -113,12 +117,26 @@ class Commands {
      * Aborts the current queue, if any.
      * Note: process_injected() will process them.
      */
-    static void inject_P(PGM_P const pgcode);
+    static inline void inject_P(PGM_P const pgcode) { injected_cmd_P = pgcode; }
+
+    /**
+     * Enqueue command(s) to run from SRAM. Drained by process_injected_command().
+     * Aborts the current SRAM queue so only use for one or two commands.
+     */
+    static inline void inject(char * const gcode) {
+      strncpy(injected_cmd, gcode, sizeof(injected_cmd) - 1);
+    }
 
     /**
      * Enqueue and return only when commands are actually enqueued
      */
     static void enqueue_one_now(const char * cmd);
+
+    /**
+     * Attempt to enqueue a single G-code command
+     * and return 'true' if successful.
+     */
+    static bool enqueue_one_P(PGM_P const pgcode);
 
     /**
      * Enqueue from program memory and return only when commands are actually enqueued
@@ -161,12 +179,6 @@ class Commands {
      * Returns NULL if the target is invalid
      */
     static Heater* get_target_heater();
-
-    /**
-     * Attempt to enqueue a single G-code command
-     * and return 'true' if successful.
-     */
-    FORCE_INLINE static bool enqueue_P(const char* cmd) { return enqueue(cmd); }
 
   private: /** Private Function */
 
@@ -223,7 +235,12 @@ class Commands {
     static bool enqueue(const char * cmd, bool say_ok=false, int8_t port=-2);
 
     /**
-     * Process the next "immediate" command
+     * Process the next "immediate" command (PROGMEM)
+     */
+    static bool process_injected_P();
+
+    /**
+     * Process the next "immediate" command (SRAM)
      */
     static bool process_injected();
 
